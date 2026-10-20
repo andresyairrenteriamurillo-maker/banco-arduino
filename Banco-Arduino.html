@@ -277,7 +277,7 @@ select.sel{border:1px solid var(--line);background:var(--surface);border-radius:
   <header class="top">
     <div class="brand">
       <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="5" width="36" height="28" rx="4" fill="var(--pcb)"/><rect x="0" y="11" width="9" height="8" fill="var(--metal)"/><rect x="16" y="20" width="16" height="6" rx="1" fill="var(--chip)"/><rect x="12" y="7" width="22" height="4" fill="var(--hdr)"/><circle cx="13" cy="25" r="2" fill="var(--hot)"/></svg>
-      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.20-1224</span></p></div>
+      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.20-1311</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -2166,7 +2166,7 @@ void loop() {
   delay(500);
 }
 `},
-{keys:['temporizador','cronometro','alarma de cocina','reloj','minutero'], titulo:'Temporizador',
+{keys:['temporizador','cronometro','alarma de cocina','minutero'], titulo:'Temporizador',
  idea:'Con el potenciómetro eliges de 1 a 30 segundos; al pulsar el botón empieza la cuenta y al terminar suena la alarma.',
  componentes:[{tipo:'pot',nombre:'Elegir tiempo',pines:{w:'A0'}},{tipo:'button',nombre:'Iniciar',pines:{x:'D2'}},{tipo:'buzzer',nombre:'Alarma',pines:{p:'D8'}},{tipo:'led',color:'verde',nombre:'Contando',pines:{a:'D13'}}],
  materiales_extra:[], notas:['El tiempo elegido y la cuenta regresiva se ven en el monitor serie.'],
@@ -2447,6 +2447,81 @@ void loop() {
   delay(50);
 }
 `},
+{keys:['reloj','reloj mecanico','reloj de servos','7 segmentos','siete segmentos','28 servos','display mecanico','display de servos','segmentos mecanicos','the diy life'], titulo:'Reloj mecánico de 7 segmentos (servos)',
+ idea:'Cada segmento del número es una pieza movida por un servo: de frente se ve, de lado se esconde. Aquí practicas con 1 dígito de 7 servos que cuenta de 0 a 9; el reloj completo usa 4 dígitos (28 servos).',
+ componentes:[{tipo:'servo',nombre:'Segmento a (arriba)',pines:{s:'D3'}},{tipo:'servo',nombre:'Segmento b (arriba der.)',pines:{s:'D4'}},{tipo:'servo',nombre:'Segmento c (abajo der.)',pines:{s:'D5'}},{tipo:'servo',nombre:'Segmento d (abajo)',pines:{s:'D6'}},{tipo:'servo',nombre:'Segmento e (abajo izq.)',pines:{s:'D7'}},{tipo:'servo',nombre:'Segmento f (arriba izq.)',pines:{s:'D8'}},{tipo:'servo',nombre:'Segmento g (centro)',pines:{s:'D9'}}],
+ materiales_extra:['Para el reloj completo: 28 micro servos SG90','2 controladores de servos PCA9685 (16 canales)','Módulo reloj DS1302 con pila','Fuente 12 V + regulador (BEC) 5 V 5 A','Segmentos impresos en 3D o de cartón'],
+ notas:['Proyecto original: «Mechanical 7 Segment Display Clock Using An Arduino & 28 Servos», de The DIY Life (the-diy-life.com). Allí están las piezas para imprimir y el código del reloj completo.',
+  'Reloj real: 4 dígitos × 7 segmentos = 28 servos. Un Arduino Uno no tiene 28 pines, por eso se usan 2 controladores PCA9685: uno para las horas (dirección 0x40) y otro para los minutos (0x41, soldando el puente A0 de la segunda placa). Cada uno maneja 14 servos.',
+  'Conexión de los PCA9685: SDA → A4, SCL → A5, VCC → 5V y GND → GND del Arduino. La segunda placa se encadena a la primera con su conector lateral.',
+  'La hora la guarda un módulo DS1302 (con pila, para no perderla si se va la luz): CLK → D6, DAT → D7, RST → D8. Librerías: Adafruit_PWMServoDriver y virtuabotixRTC.',
+  'Energía: 28 servos pueden pedir varios amperios. Usa una fuente de 12 V con un regulador (BEC) de 5 V y 5 A conectado a los bornes de los PCA9685, nunca al pin 5V del Arduino. Une todos los GND.',
+  'Calibra cada servo: cambia ENCENDIDO y APAGADO hasta que el segmento quede justo de frente o justo de lado, sin forzar el servo.',
+  'El segmento del centro (g) se mueve al final, después de los de afuera, para que no choque con ellos. Antes de apagar el reloj, déjalo mostrando 88:88.'],
+ codigo:`// Reloj mecánico de 7 segmentos: práctica con 1 dígito (7 servos)
+// Basado en el proyecto de The DIY Life (28 servos, 2 PCA9685, RTC DS1302)
+#include <Servo.h>
+Servo segmento[7];
+const int pines[] = {3, 4, 5, 6, 7, 8, 9};   // a, b, c, d, e, f, g
+const int ENCENDIDO = 90;   // segmento de frente: se ve
+const int APAGADO = 0;      // segmento de lado: se esconde
+
+//        a  b  c  d  e  f  g
+const int digitos[10][7] = {
+  {1, 1, 1, 1, 1, 1, 0},  // 0
+  {0, 1, 1, 0, 0, 0, 0},  // 1
+  {1, 1, 0, 1, 1, 0, 1},  // 2
+  {1, 1, 1, 1, 0, 0, 1},  // 3
+  {0, 1, 1, 0, 0, 1, 1},  // 4
+  {1, 0, 1, 1, 0, 1, 1},  // 5
+  {1, 0, 1, 1, 1, 1, 1},  // 6
+  {1, 1, 1, 0, 0, 0, 0},  // 7
+  {1, 1, 1, 1, 1, 1, 1},  // 8
+  {1, 1, 1, 1, 0, 1, 1}   // 9
+};
+int numero = 0;
+
+void setup() {
+  Serial.begin(9600);
+  for (int i = 0; i < 7; i++) {
+    segmento[i].attach(pines[i]);
+    segmento[i].write(ENCENDIDO);
+  }
+  Serial.println("Inicio: todos los segmentos de frente (8)");
+  delay(1500);
+}
+
+void dibujar(int n) {
+  // dibuja el número en el monitor serie
+  Serial.print(" ");
+  Serial.println(digitos[n][0] == 1 ? "_" : " ");
+  Serial.print(digitos[n][5] == 1 ? "|" : " ");
+  Serial.print(digitos[n][6] == 1 ? "_" : " ");
+  Serial.println(digitos[n][1] == 1 ? "|" : " ");
+  Serial.print(digitos[n][4] == 1 ? "|" : " ");
+  Serial.print(digitos[n][3] == 1 ? "_" : " ");
+  Serial.println(digitos[n][2] == 1 ? "|" : " ");
+}
+
+void mostrar(int n) {
+  // primero los 6 de afuera...
+  for (int i = 0; i < 6; i++) {
+    segmento[i].write(digitos[n][i] == 1 ? ENCENDIDO : APAGADO);
+  }
+  delay(150);
+  // ...y al final el del centro, para que no choque
+  segmento[6].write(digitos[n][6] == 1 ? ENCENDIDO : APAGADO);
+  Serial.print("Número: ");
+  Serial.println(n);
+  dibujar(n);
+}
+
+void loop() {
+  mostrar(numero);
+  numero = (numero + 1) % 10;
+  delay(1500);
+}
+`},
 ];
 function findLibrary(text){
   const t = ' ' + norm(text).replace(/[.,;:¡!¿?()]/g, ' ') + ' ';
@@ -2705,6 +2780,12 @@ function autoWire(c, reserved, problems){
     }
     const E = endpoint(net(hole), !!r.res);
     if (E.kind !== 'none') continue;
+    if (r.to === '5v' && c.type === 'servo' && c.by >= 5 && comps.some(x => x.type === 'supply')){
+      // servos en la mitad de abajo: el riel + de abajo se alimenta desde la fuente externa (arriba), no desde el Arduino
+      const bp = infoOf(net('bp:0'));
+      if (!bp.ext5 && !bp.ard5){ const a = freeRail('tp', 34), b2 = freeRail('bp', 34); if (a && b2) addW(a, b2); }
+      if (infoOf(net('bp:0')).ext5){ const end = freeInStrip(col, c.by), rh = freeRail('bp', col); if (end && rh) addW(end, rh); continue; }
+    }
     if (r.to === 'gnd' || r.to === '5v'){
       ensurePower(c.by, r.to, problems);
       const rail = (c.by < 5 ? 't' : 'b') + (r.to === 'gnd' ? 'n' : 'p');
@@ -3779,6 +3860,7 @@ function transpile(src){
   if (br) throw Object.assign(new Error(br.msg), {userLine: br.line});
   s = s.replace(/^[ \t]*#include[^\n]*/gm, '');
   s = s.replace(/^[ \t]*#define[ \t]+(\w+)[ \t]+([^\n]*)/gm, (m, n, v) => `const ${n} = ${v.trim()};`);
+  s = s.replace(/\bServo\s+([A-Za-z_]\w*)\s*\[\s*(\w+)\s*\]\s*;/g, 'let $1 = Array.from({length: $2}, () => new Servo());');
   s = s.replace(/\bServo\s+([A-Za-z_][\w\s,]*);/g, (m, names) => 'let ' + names.split(',').map(n => n.trim() + ' = new Servo()').join(', ') + ';');
   s = s.replace(/\(\s*(?:unsigned\s+)?(?:int|long|float|double|byte|char|bool|word)\s*\)/g, '');
   s = s.replace(/sizeof\s*\(\s*(\w+)\s*\)\s*\/\s*sizeof\s*\(\s*\w+(?:\s*\[\s*0\s*\])?\s*\)/g, '$1.length');
