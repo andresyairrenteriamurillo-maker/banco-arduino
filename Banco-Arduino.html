@@ -277,7 +277,7 @@ select.sel{border:1px solid var(--line);background:var(--surface);border-radius:
   <header class="top">
     <div class="brand">
       <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="5" width="36" height="28" rx="4" fill="var(--pcb)"/><rect x="0" y="11" width="9" height="8" fill="var(--metal)"/><rect x="16" y="20" width="16" height="6" rx="1" fill="var(--chip)"/><rect x="12" y="7" width="22" height="4" fill="var(--hdr)"/><circle cx="13" cy="25" r="2" fill="var(--hot)"/></svg>
-      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.22-1147</span></p></div>
+      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.22-1154</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -444,6 +444,8 @@ const TYPES = {
             legs:[{dx:0,id:'g',l:'GND',n:'GND (café)'},{dx:1,id:'v',l:'5V',n:'5V (rojo)'},{dx:2,id:'s',l:'SIG',n:'señal (naranja)'}]},
   motor:   {name:'Motor DC', tag:'Actuador', desc:'Velocidad con analogWrite', keys:['motor','dc','ventilador','motor dc','rueda'], fp:[0,2],
             legs:[{dx:0,id:'p',l:'+',n:'+'},{dx:2,id:'n',l:'−',n:'−'}]},
+  battery: {name:'Batería 3.3 V', tag:'Energía', desc:'Pila de litio (3.3 V o 3.7 V): alimenta módulos de 3.3 V como la pantalla OLED', keys:['bateria','bateria 3.3','pila 3.3','pila de litio','bateria de litio','18650','lipo','3.3v','3.7v'], fp:[-2,3],
+            legs:[{dx:0,id:'p',l:'+',n:'+ (positivo)'},{dx:1,id:'n',l:'−',n:'− (negativo)'}]},
   oled:    {name:'Pantalla OLED 0.96″', tag:'Salida', desc:'Pantalla de 128×64 puntos (SSD1306) por I2C: textos, números y dibujos', keys:['oled','pantalla oled','pantalla','display oled','ssd1306','0.96','096','display'], fp:[-3,6],
             legs:[{dx:0,id:'g',l:'GND',n:'GND'},{dx:1,id:'v',l:'VCC',n:'VCC'},{dx:2,id:'c',l:'SCL',n:'SCL (reloj I2C)'},{dx:3,id:'d',l:'SDA',n:'SDA (datos I2C)'}]},
   pca9685: {name:'Controlador de servos PCA9685', tag:'Control', desc:'Maneja hasta 16 servos con 2 cables (I2C: SDA y SCL)', keys:['pca9685','pca','controlador de servos','driver de servos','16 servos','i2c'], fp:[-1,6],
@@ -457,7 +459,7 @@ const TYPES = {
   supply12:{name:'Fuente 12 V', tag:'Energía', desc:'Adaptador de 12 V / 2 A para bombas y motores de 12 V', keys:['fuente 12v','fuente de 12','adaptador 12','12 voltios','bateria 12'], fp:[-1,2],
             legs:[{dx:0,id:'p',l:'+',n:'+12V'},{dx:1,id:'n',l:'−',n:'− (GND de 12 V)'}]},
 };
-const ORDER = ['oled','led','resistor','rgb','button','switch','pot','ldr','lm35','pir','sonar','buzzer','servo','motor','relay','pump12','supply12','supply','pca9685','ds1302'];
+const ORDER = ['battery','oled','led','resistor','rgb','button','switch','pot','ldr','lm35','pir','sonar','buzzer','servo','motor','relay','pump12','supply12','supply','pca9685','ds1302'];
 const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
 
 /* ---------------- Escena ---------------- */
@@ -574,6 +576,7 @@ function makeComp(type, o = {}){
   if (type === 'resistor') c.ohm ??= '220 Ω';
   if (type === 'switch' || type === 'pir') c.on ??= false;
   if (type === 'oled') c.addr ??= 60;
+  if (type === 'battery'){ c.volt ??= 3.3; c.nousb ??= false; }
   if (type === 'pca9685') c.addr ??= (comps.filter(x => x.type === 'pca9685').length ? 64 + comps.filter(x => x.type === 'pca9685').length : 64);
   c.disp = 90; c.rot = 0; c.pressed = false; c.onT = 0; c.burnt ??= false; c.m = {};
   return c;
@@ -619,6 +622,11 @@ function buildNets(){
     const N0 = INFO[nN] ??= {pins: [], gnd: false, v5: false, v33: false, vin: false, ard5: false, ardg: false, ext5: false, extg: false, v12: false, g12: false};
     P0.v5 = true; P0.ext5 = true; N0.gnd = true; N0.extg = true;
   });
+  comps.filter(c => c.type === 'battery').forEach(c => {
+    const L = TYPES.battery.legs, pN = net(legHole(c, L[0])), nN = net(legHole(c, L[1]));
+    const P0 = INFO[pN] ??= {pins: [], gnd: false, v5: false, v33: false, vin: false, ard5: false, ardg: false, ext5: false, extg: false, v12: false, g12: false}, N0 = INFO[nN] ??= {pins: [], gnd: false, v5: false, v33: false, vin: false, ard5: false, ardg: false, ext5: false, extg: false, v12: false, g12: false};
+    P0.bat = +c.volt || 3.3; N0.gnd = true; N0.batg = true;
+  });
   comps.filter(c => c.type === 'supply12').forEach(c => {
     const L = TYPES.supply12.legs, pN = net(legHole(c, L[0])), nN = net(legHole(c, L[1]));
     (INFO[pN] ??= {pins: [], gnd: false, v5: false, v33: false, vin: false, ard5: false, ardg: false, ext5: false, extg: false, v12: false, g12: false}).v12 = true;
@@ -630,13 +638,15 @@ function buildNets(){
 const infoOf = n => INFO[n] || {pins: [], gnd: false, v5: false, v33: false, vin: false, ard5: false, ardg: false, ext5: false, extg: false, v12: false, g12: false};
 function classify(d){
   if ((d.v5 || d.vin) && d.gnd) return {kind:'short', name:'5V y GND unidos'};
+  if (d.bat && d.gnd) return {kind:'short', name:'+ y − de la batería unidos'};
   if (d.v12 && (d.g12 || d.gnd)) return {kind:'short', name:'12V y − unidos'};
   if (d.pins.length) return {kind:'pin', pin: d.pins[0], name: pinName(d.pins[0])};
   if (d.v12) return {kind:'12v', name:'+12V de la fuente'};
-  if (d.gnd) return {kind:'gnd', name: d.extg && !d.ardg ? 'GND de la fuente' : 'GND'};
+  if (d.gnd) return {kind:'gnd', name: d.batg && !d.ardg && !d.extg ? '− de la batería' : d.extg && !d.ardg ? 'GND de la fuente' : 'GND'};
   if (d.v5) return {kind:'5v', name: d.ext5 && !d.ard5 ? '5V de la fuente' : '5V'};
   if (d.vin) return {kind:'5v', name:'VIN'};
   if (d.v33) return {kind:'3v3', name:'3.3V'};
+  if (d.bat) return {kind:'3v3', name:`+ de la batería (${d.bat} V)`};
   if (d.g12) return {kind:'g12', name:'− de la fuente de 12 V'};
   return null;
 }
@@ -650,7 +660,7 @@ function endpoint(n, viaR = true){
   return {kind:'none', name:'nada', r: 0};
 }
 const pullOf = n => { for (const R of resList){ const o = R.n1 === n ? R.n2 : R.n2 === n ? R.n1 : null; if (o && o !== n){ const k = classify(infoOf(o)); if (k && k.kind === 'gnd') return {dir:'down', ohm: R.ohm}; if (k && (k.kind === '5v' || k.kind === '3v3')) return {dir:'up', ohm: R.ohm}; } } return null; };
-const touched = n => { const d = infoOf(n); return d.pins.length || d.gnd || d.v5 || d.v33 || d.vin || d.v12 || d.g12 || resList.some(R => R.n1 === n || R.n2 === n); };
+const touched = n => { const d = infoOf(n); return d.pins.length || d.gnd || d.v5 || d.v33 || d.vin || d.v12 || d.g12 || d.bat || resList.some(R => R.n1 === n || R.n2 === n); };
 const epText = E => E.kind === 'none' ? 'sin conectar' : E.name + (E.r ? ` vía ${fmtOhm(E.r)}` : '');
 
 /* ---------------- Revisión de cada componente ---------------- */
@@ -807,12 +817,17 @@ function review(notify, ctx){
   cur = null;
   // problemas globales
   for (const [r, d] of Object.entries(INFO)){
-    const has = d.pins.length || d.gnd || d.v5 || d.v33 || d.vin || d.v12 || d.g12;
+    const has = d.pins.length || d.gnd || d.v5 || d.v33 || d.vin || d.v12 || d.g12 || d.bat;
     if (!has) continue;
     if (d.v12 && (d.g12 || d.gnd)) iss('err', 'Cortocircuito: el + de 12 V está unido con el −', 'El + y el − de la fuente de 12 V quedaron unidos sin nada en medio: la fuente se calienta, se protege y se apaga, o se daña. El + de 12 V solo va al COM del relé, y el − de 12 V solo al − de la bomba. <b>El simulador no ejecutará el programa hasta que lo corrijas.</b>');
     if (d.v12 && (d.ard5 || d.ext5 || d.v33)) iss('err', 'Peligro: 12 V conectados al 5V', 'Meter 12 V por el pin 5V (o 3.3V) del Arduino quema el regulador y el microcontrolador al instante, y puede dañar el puerto USB del computador. Los 12 V van solo al COM del relé y a la bomba, nunca a los rieles del Arduino. <b>El simulador no ejecutará el programa hasta que lo corrijas.</b>');
     if (d.v12 && d.pins.length) iss('err', `Peligro: 12 V conectados a ${d.pins.map(pinName).join(', ')}`, 'Un pin del Arduino soporta máximo 5 V. Con 12 V el pin (y probablemente el microcontrolador) se quema. El pin solo va al IN del relé; los 12 V van al otro lado del relé (COM). <b>El simulador no ejecutará el programa hasta que lo corrijas.</b>');
     if (d.v12 && d.vin && !d.pins.length && !d.ard5) iss('info', 'El Arduino recibe 12 V por VIN', 'Funciona: VIN acepta de 7 a 12 V y el regulador del Arduino los baja a 5 V. Así una sola fuente de 12 V alimenta el Arduino y la bomba (une los −).');
+    if (d.bat && d.gnd) iss('err', 'Cortocircuito: el + y el − de la batería están unidos', 'Unir los dos polos de una pila de litio sin nada en medio la calienta muy rápido: puede inflarse, quemarse o explotar. Revisa que el + y el − vayan a rieles distintos. <b>El simulador no ejecutará el programa hasta que lo corrijas.</b>');
+    if (d.bat && d.ard5) iss('warn', `La batería de ${d.bat} V está unida al 5V del Arduino`, `Son dos fuentes de voltaje distinto conectadas juntas (${d.bat} V y 5 V): el 5V del Arduino empuja corriente dentro de la batería, la calienta y la puede dañar. Usa un riel solo para la batería.`);
+    if (d.bat && d.vin) iss('warn', `El Arduino no prende con ${d.bat} V por VIN`, 'El pin VIN necesita de 7 a 12 V (por ejemplo, una batería de 9 V). Con una pila de 3.3 V o 3.7 V el regulador del Arduino no tiene voltaje suficiente y la placa no enciende.');
+    if (d.bat && d.v33) iss('warn', 'La batería está conectada al pin 3.3V del Arduino', 'El pin 3.3V del Arduino Uno es una salida: entrega 3.3 V, no está hecho para recibirlos. Si el Arduino está conectado por USB, las dos fuentes chocan. Usa un riel aparte para la batería.');
+    if (d.bat && d.pins.length) iss('warn', `La batería está conectada directo a ${d.pins.map(pinName).join(', ')}`, 'Si el programa pone ese pin en LOW, la batería queda en corto con el pin. Entre la batería y un pin siempre debe haber un componente.');
     if ((d.v5 || d.vin) && d.gnd) iss('err', 'Cortocircuito: 5V conectado directo a GND', 'Unir 5V con GND sin nada en medio deja pasar toda la corriente que la fuente puede dar: el regulador se calienta, el USB se desconecta y puedes dañar la placa o el puerto del computador. Revisa los cables de los rieles + y −. <b>El simulador no ejecutará el programa hasta que lo corrijas.</b>');
     if (d.v33 && d.gnd) iss('err', 'Cortocircuito: 3.3V conectado directo a GND', 'Igual que con 5V: sin nada que limite la corriente, el regulador de 3.3V se sobrecalienta. Quita el cable que los une.');
     if (d.ard5 && d.ext5) iss('warn', 'La fuente externa está unida al 5V del Arduino', 'Son dos fuentes distintas empujando sobre el mismo cable: la más fuerte puede meter corriente dentro del Arduino o del USB. Entre la fuente externa y el Arduino solo se une <b>GND</b>; el + de la fuente va únicamente a lo que alimenta (por ejemplo, el cable rojo de los servos).');
@@ -968,6 +983,13 @@ function partSVG(c){
         <circle cx="0" cy="-24" r="7" fill="#D9473F"/><text x="0" y="-20.5" text-anchor="middle" fill="#fff" style="font:700 10px var(--f-mono)">+</text>
         <circle cx="22" cy="-24" r="7" fill="#111" stroke="#555"/><text x="22" y="-20.5" text-anchor="middle" fill="#fff" style="font:700 10px var(--f-mono)">−</text>`;
       box = [-28, -66, 78, 18]; break;
+    case 'battery': {
+      const v = +c.volt || 3.3;
+      s = `${leg(0,0,0,-10)}${leg(22,0,22,-10)}<rect x="-46" y="-42" width="6" height="16" rx="2" fill="#B8BEC2"/><rect x="-40" y="-56" width="102" height="44" rx="10" fill="#2B5FAF"/>
+        <rect x="32" y="-56" width="30" height="44" rx="10" fill="#1E3F86"/><text x="-29" y="-29" text-anchor="middle" fill="#fff" style="font:700 14px var(--f-mono)">+</text><text x="47" y="-29" text-anchor="middle" fill="#fff" style="font:700 14px var(--f-mono)">−</text>
+        <text x="4" y="-36" text-anchor="middle" fill="#fff" style="font:700 12px var(--f-disp)">${v} V</text><text x="4" y="-22" text-anchor="middle" fill="#cfe0ff" style="font:600 7px var(--f-mono)">LITIO</text>
+        <text x="0" y="-2" text-anchor="middle" fill="#D9473F" style="font:700 8px var(--f-mono)">+</text><text x="22" y="-2" text-anchor="middle" fill="#333" style="font:700 8px var(--f-mono)">−</text>`;
+      box = [-46, -62, 120, 18]; break; }
     case 'oled':
       s = `${[0,1,2,3].map(i => leg(i * 22, 0, i * 22, -8)).join('')}<rect x="-58" y="-124" width="182" height="116" rx="6" fill="#1F4E9A"/>
         <circle cx="-50" cy="-116" r="3.5" fill="#163a75"/><circle cx="116" cy="-116" r="3.5" fill="#163a75"/><circle cx="-50" cy="-16" r="3.5" fill="#163a75"/><circle cx="116" cy="-16" r="3.5" fill="#163a75"/>
@@ -1188,6 +1210,7 @@ function cardCtl(c){
     case 'lm35': return `<label>Temperatura</label><input type="range" min="-10" max="110" value="${c.value}" data-k="value" aria-label="Temperatura">`;
     case 'pir': return `<label>Hay movimiento<input type="checkbox" data-k="on"${c.on?' checked':''}></label>`;
     case 'sonar': return `<label>Distancia del objeto</label><input type="range" min="2" max="400" value="${c.value}" data-k="value" aria-label="Distancia al objeto">`;
+    case 'battery': return `<label>Voltaje<select data-k="volt">${['3.3','3.7'].map(v => `<option value="${v}"${String(+c.volt || 3.3) === v ? ' selected' : ''}>${v} V${v === '3.7' ? ' (18650 / LiPo)' : ''}</option>`).join('')}</select></label><label>Probar sin USB<input type="checkbox" data-k="nousb"${c.nousb ? ' checked' : ''}></label><div class="note">Sin USB, el Arduino solo recibe lo que le llega por sus pines de energía.</div>`;
     case 'oled': return `<label>Dirección I2C<select data-k="addr">${[60,61].map(a => `<option value="${a}"${a === (+c.addr || 60) ? ' selected' : ''}>0x${a.toString(16).toUpperCase()}</option>`).join('')}</select></label><div class="note">Casi todas las pantallas de 0.96″ usan 0x3C.</div>`;
     case 'pca9685': return `<label>Dirección I2C<select data-k="addr">${[64,65,66,67].map(a => `<option value="${a}"${a === (+c.addr || 64) ? ' selected' : ''}>0x${a.toString(16)}</option>`).join('')}</select></label><div class="note">Canales 0–6 y 7–13 mueven 2 dígitos del display mecánico.</div>`;
     case 'ds1302': return `<div class="note">Usa la hora del computador. Con setDS1302Time() puedes ponerle otra hora.</div>`;
@@ -1209,6 +1232,8 @@ function renderCards(){
       const k = e.target.dataset.k; if (!k) return;
       if (k === 'color' || k === 'ohm'){ c[k] = e.target.value; renderParts(); changed(true, {cids: [c.id]}); }
       else if (k === 'addr'){ c.addr = +e.target.value; renderParts(); changed(true, {cids: [c.id]}); }
+      else if (k === 'volt'){ c.volt = +e.target.value; renderParts(); changed(true, {cids: [c.id]}); }
+      else if (k === 'nousb'){ c.nousb = e.target.checked; save(); }
       else if (k === 'on'){ c.on = e.target.checked; save(); }
     });
     el.addEventListener('input', e => { if (e.target.dataset.k === 'value'){ c.value = +e.target.value; save(); } });
@@ -1430,6 +1455,7 @@ const ICON = {
   buzzer:'<circle cx="12" cy="12" r="9" fill="#1A1C1E"/><circle cx="12" cy="12" r="2" fill="#000"/>',
   servo:'<rect x="2" y="8" width="20" height="12" rx="2" fill="#2A5FC7"/><rect x="13" y="2" width="4" height="10" rx="2" fill="#f4f4f4"/>',
   motor:'<circle cx="12" cy="12" r="9" fill="#A9B0B5"/><path d="M12 12V5M12 12l6 3M12 12l-6 3" stroke="#3a3f42" stroke-width="2.5"/>',
+  battery:'<rect x="2" y="7" width="18" height="10" rx="3" fill="#2B5FAF"/><rect x="20" y="10" width="2" height="4" fill="#B8BEC2"/><rect x="2" y="7" width="5" height="10" rx="2" fill="#1E3F86"/>',
   oled:'<rect x="2" y="3" width="20" height="18" rx="2" fill="#1F4E9A"/><rect x="4" y="5" width="16" height="10" fill="#050607"/><rect x="6" y="8" width="9" height="1.6" fill="#7fd4ff"/><rect x="6" y="11" width="6" height="1.6" fill="#7fd4ff"/>',
   pca9685:'<rect x="1" y="5" width="22" height="14" rx="2" fill="#2C2F7A"/><rect x="3" y="7" width="18" height="3" fill="#E6B82E"/><rect x="9" y="12" width="7" height="5" fill="#151515"/>',
   ds1302:'<rect x="2" y="5" width="20" height="14" rx="2" fill="#1F5FA8"/><circle cx="15" cy="12" r="5" fill="#C9CED2"/>',
@@ -1470,6 +1496,7 @@ function addFromSearch(t){
   drawSug();
 }
 const HOWTO = {
+  battery:'El + al riel + de arriba y el − al riel − de arriba. Ese riel + alimenta módulos de 3.3 V (como la pantalla OLED). Une el − con el GND del Arduino.',
   oled:'GND al riel −, VCC al riel + (5V), SCL a A5 y SDA a A4. Es I2C: puede compartir A4 y A5 con otros módulos I2C.',
   pca9685:'GND al riel −, VCC al riel + (5V del Arduino), SCL a A5 y SDA a A4. V+ va a la fuente externa de 5 V que mueve los servos. OE no se conecta.',
   ds1302:'VCC al riel + (5V), GND al riel −, CLK a D6, DAT a D7 y RST a D8.',
@@ -2729,6 +2756,59 @@ void loop() {
   delay(100);
 }
 `},
+{keys:['oled con bateria','pantalla con bateria','bateria 3.3','bateria de 3.3','pila 3.3','oled bateria','bateria oled','prender con bateria','pila de litio'], titulo:'Pantalla OLED con batería de 3.3 V',
+ idea:'La pantalla OLED se alimenta con una batería de litio de 3.3 V (riel + de arriba) en vez del 5V del Arduino. El Arduino sigue conectado por USB y le manda los datos por SDA y SCL.',
+ componentes:[{tipo:'battery',nombre:'Batería 3.3 V'},{tipo:'oled',nombre:'Pantalla OLED 0.96″'},{tipo:'pot',nombre:'Potenciómetro',pines:{w:'A0'}}],
+ materiales_extra:['Portapilas para la batería (por ejemplo, de 18650)'],
+ notas:['La pantalla OLED funciona con 3.3 V a 5 V, por eso la batería de 3.3 V la puede alimentar.',
+  'El − de la batería debe estar unido al GND del Arduino: así la pantalla y el Arduino tienen el mismo 0 V y se entienden por I2C.',
+  'El Arduino Uno NO prende con 3.3 V: necesita el USB, 5 V en el pin 5V o de 7 a 12 V en VIN (una batería de 9 V). Prueba marcar «Probar sin USB» en la tarjeta de la batería para ver qué pasa.',
+  'Para un proyecto portátil que funcione solo con una pila de 3.7 V se usa otra placa, como un ESP32 o un Arduino Pro Mini de 3.3 V, o un módulo elevador (step-up) a 5 V.',
+  'Cuidado con las pilas de litio: nunca unas su + con su − (se calientan y pueden inflarse o quemarse), y cárgalas solo con su cargador (por ejemplo, un módulo TP4056).'],
+ codigo:`// Pantalla OLED alimentada con batería de 3.3 V
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+Adafruit_SSD1306 display(128, 64, &Wire, -1);
+const int POT = A0;
+
+void setup() {
+  Serial.begin(9600);
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("No encuentro la pantalla: revisa VCC (batería), GND, SDA (A4) y SCL (A5)");
+    while (true) {
+      delay(1000);
+    }
+  }
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("Pantalla con bateria");
+  display.println("de 3.3 V");
+  display.display();
+  delay(2000);
+}
+
+void loop() {
+  int valor = analogRead(POT);
+  int porcentaje = map(valor, 0, 1023, 0, 100);
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("Bateria 3.3V");
+  display.setTextSize(3);
+  display.setCursor(0, 20);
+  display.print(porcentaje);
+  display.print("%");
+  display.drawRect(0, 54, 128, 10, SSD1306_WHITE);
+  display.fillRect(2, 56, map(porcentaje, 0, 100, 0, 124), 6, SSD1306_WHITE);
+  display.display();
+  delay(100);
+}
+`},
 ];
 function findLibrary(text){
   const t = ' ' + norm(text).replace(/[.,;:¡!¿?()]/g, ' ') + ' ';
@@ -2762,6 +2842,7 @@ const ROLE = {
   relay:{v:{to:'5v'}, g:{to:'gnd'}, i:{to:'pin', kind:'out'}, c:{to:'v12'}, o:{to:'pumpP'}},
   pump12:{p:{to:'relayNO'}, n:{to:'g12'}},
   supply12:{p:{to:'v12'}, n:{to:'g12'}},
+  battery:{p:{to:'rail+'}, n:{to:'gnd'}},
   oled:{g:{to:'gnd'}, v:{to:'5v'}, c:{to:'pin', kind:'scl'}, d:{to:'pin', kind:'sda'}},
   pca9685:{g:{to:'gnd'}, c:{to:'pin', kind:'scl'}, d:{to:'pin', kind:'sda'}, v:{to:'5v'}, p:{to:'rail+'}},
   ds1302:{v:{to:'5v'}, g:{to:'gnd'}, k:{to:'pin', kind:'clk'}, d:{to:'pin', kind:'dat'}, r:{to:'pin', kind:'rst'}},
@@ -2770,6 +2851,19 @@ TYPES.supply = {name:'Fuente 5 V externa', tag:'Energía', desc:'Fuente o portap
   legs:[{dx:0,id:'p',l:'+',n:'+ de la fuente'},{dx:1,id:'n',l:'−',n:'− de la fuente'}]};
 const legOf = (c, id) => TYPES[c.type].legs.find(l => l.id === id);
 const netOfLeg = (c, id) => net(legHole(c, legOf(c, id)));
+EVAL.battery = (c, N) => {
+  c.m = {};
+  const v = +c.volt || 3.3;
+  if (N.p === N.n){ iss('err', 'Las dos patas de la batería están unidas', 'Quedó en cortocircuito: la pila se calienta y se puede dañar. Pon el + y el − en columnas distintas.'); return; }
+  const loads = comps.filter(x => x !== c && TYPES[x.type].legs.some(l => net(legHole(x, l)) === N.p));
+  if (!touched(N.p) && !loads.length){ iss('info', 'La batería todavía no alimenta nada', 'Lleva el + a un riel + libre (el de arriba) y conecta allí lo que quieras alimentar, por ejemplo el VCC de la pantalla OLED.'); return; }
+  if (!infoOf(N.n).ardg && loads.some(x => ['oled','pca9685','ds1302','lm35','pir','sonar'].includes(x.type))) iss('warn', 'Une el − de la batería con el GND del Arduino', 'El módulo que alimentas con la batería también habla con el Arduino. Para que se entiendan, los dos necesitan el mismo 0 V de referencia: une el − de la batería (riel −) con un GND del Arduino.');
+  const five = loads.filter(x => ['servo','sonar','relay','motor','pump12','buzzer'].includes(x.type));
+  if (five.length) iss('warn', `${TYPES[five[0].type].name} necesita 5 V`, `Con ${v} V ese componente funciona mal o no funciona. La batería de 3.3 V sirve para módulos de 3.3 V, como la pantalla OLED, el módulo de hora o algunos sensores.`);
+  if (!five.length && loads.length && infoOf(N.n).ardg) iss('ok', `Batería de ${v} V bien conectada`, `Alimenta ${loads.map(x => TYPES[x.type].name).join(', ')} y su − está unido al GND del Arduino.`);
+  if (c.nousb) iss('info', 'Modo «sin USB»: el Arduino Uno no prende con esta batería', `El Arduino Uno necesita 5 V en el pin 5V, o de 7 a 12 V en VIN (por ejemplo, una batería de 9 V o un power bank por USB). Con ${v} V solo encienden los módulos de 3.3 V. Para un proyecto portátil de ${v} V se usa otra placa, como un ESP32 o un Arduino Pro Mini de 3.3 V.`);
+  c.m = {ok: true};
+};
 EVAL.oled = (c, N) => {
   const ok = power(c, N.v, N.g);
   const sda = signal(c, N.d, 'SDA', false), scl = signal(c, N.c, 'SCL', false);
@@ -2867,6 +2961,7 @@ const LEGTXT = {
   supply12:{p:'Borne +12V', n:'Borne −'},
   pca9685:{g:'GND', c:'SCL', d:'SDA', v:'VCC', p:'V+ (servos)'},
   oled:{g:'GND', v:'VCC', c:'SCL', d:'SDA'},
+  battery:{p:'Polo + (positivo)', n:'Polo − (negativo)'},
   ds1302:{v:'VCC', g:'GND', k:'CLK', d:'DAT', r:'RST'},
 };
 const pinIdOf = p => p < 14 ? 'P:D' + p : 'P:A' + (p - 14);
@@ -2971,13 +3066,13 @@ function ensurePower(by, what, problems){
     const h = freeRail('bn', 14);
     if (g && h) addW(g, h); else problems.push('No encontré un pin GND libre para el riel −.');
   }
-  if (what === '5v' && !infoOf(net('bp:0')).v5 && !(by < 5 && infoOf(net('tp:0')).v5)){
+  if (what === '5v' && !infoOf(net('bp:0')).v5 && !(by < 5 && (infoOf(net('tp:0')).v5 || infoOf(net('tp:0')).bat))){
     const h = freeRail('bp', 2);
     if (!occ().has('P:5V') && h) addW('P:5V', h); else problems.push('El pin 5V ya está ocupado: conecta el riel + a 5V a mano.');
   }
   if (by < 5){
     if (what === 'gnd' && !infoOf(net('tn:0')).ardg){ const a = freeRail('bn', 35), b = freeRail('tn', 35); if (a && b) addW(a, b); }
-    if (what === '5v' && !infoOf(net('tp:0')).v5 && !infoOf(net('tp:0')).ext5){ const a = freeRail('bp', 34), b = freeRail('tp', 34); if (a && b) addW(a, b); }
+    if (what === '5v' && !infoOf(net('tp:0')).v5 && !infoOf(net('tp:0')).ext5 && !infoOf(net('tp:0')).bat){ const a = freeRail('bp', 34), b = freeRail('tp', 34); if (a && b) addW(a, b); }
   }
 }
 function placeResistorFor(c, col, ohm){
@@ -3001,7 +3096,7 @@ function autoWire(c, reserved, problems){
   for (const l of TYPES[c.type].legs){
     const r = R[l.id]; if (!r) continue;
     const col = c.bx + l.dx, hole = legHole(c, l);
-    if (c.type === 'supply'){
+    if (c.type === 'supply' || c.type === 'battery'){
       const n0 = net(hole);
       if (['tp','bp','tn','bn'].some(x => net(x + ':0') === n0)) continue;
       if (r.to === 'gnd') ensurePower(c.by, 'gnd', problems);
@@ -3085,7 +3180,7 @@ function autoWireUser(c){
 
 
 /* ================= Energía, fuentes y controladores ================= */
-const CURRENT = {led:[15,15], rgb:[45,45], buzzer:[30,30], servo:[150,650], motor:[200,1000], sonar:[15,15], pir:[1,1], lm35:[1,1], pot:[1,1], ldr:[1,1], button:[0,0], switch:[0,0], resistor:[0,0], supply:[0,0], relay:[70,70], pump12:[0,0], supply12:[0,0], pca9685:[10,10], ds1302:[1,1], oled:[20,20]};
+const CURRENT = {led:[15,15], rgb:[45,45], buzzer:[30,30], servo:[150,650], motor:[200,1000], sonar:[15,15], pir:[1,1], lm35:[1,1], pot:[1,1], ldr:[1,1], button:[0,0], switch:[0,0], resistor:[0,0], supply:[0,0], relay:[70,70], pump12:[0,0], supply12:[0,0], pca9685:[10,10], ds1302:[1,1], oled:[20,20], battery:[0,0]};
 function powerAdvice(counts, flags = {}){
   const n = t => counts[t] || 0, s = n('servo'), mo = n('motor');
   let run = 50, peak = 50;
@@ -3117,6 +3212,7 @@ function powerAdvice(counts, flags = {}){
     lines.push(`<b>PCA9685 → fuente aparte para los servos:</b> cada PCA9685 mueve hasta 16 servos (aquí 14: dos dígitos). Con ${sv} servos se necesita una fuente de 5 V de al menos <b>${A} A</b> en los bornes <b>V+</b> y <b>GND</b> de los PCA9685 (por ejemplo, fuente de 12 V con un regulador/BEC de 5 V y 5 A). El Arduino solo da las órdenes por SDA (A4) y SCL (A5).`);
     if (n('pca9685') > 1) lines.push('<b>Varios PCA9685:</b> comparten SDA, SCL, VCC y GND (se encadenan), pero cada uno necesita una dirección distinta: el primero 0x40 y el segundo 0x41 (se suelda el puente A0).');
   }
+  if (n('battery')) lines.push('<b>Batería de 3.3 V:</b> alimenta módulos de 3.3 V (pantalla OLED, módulo de hora). El Arduino Uno <b>no prende</b> con ella: necesita USB, 5 V en el pin 5V o de 7 a 12 V en VIN (una batería de 9 V). Une el − de la batería con el GND del Arduino.');
   if (n('ds1302')) lines.push('<b>DS1302:</b> lleva una pila CR2032 para no perder la hora cuando se apaga el Arduino.');
   if (n('pump12')){
     lines.push('<b>Bomba o motor de 12 V → relé + fuente de 12 V:</b> el Arduino no puede darle 12 V ni la corriente que pide (≈1 A). El pin solo activa el <b>módulo relé de 5 V</b> (IN), y el relé hace de interruptor: <b>+12 V → COM</b>, <b>NO → + de la bomba</b>, <b>− de la bomba → − de la fuente</b>.');
@@ -3144,6 +3240,7 @@ function powerAdvice(counts, flags = {}){
 const NUMW = {un:1, una:1, uno:1, dos:2, tres:3, cuatro:4, cinco:5, seis:6, siete:7, ocho:8};
 const COLORS = ['rojo','verde','amarillo','azul','blanco'];
 const PARSE = [
+  ['battery', ['baterias? (?:de )?3[.,]?[37] ?v(?:oltios)?','pilas? (?:de )?3[.,]?[37] ?v(?:oltios)?','pilas? de litio','baterias? de litio','18650','lipo','baterias?']],
   ['oled', ['pantallas? oled','oled','ssd1306','pantallas?','displays? oled','0[.,]?96']],
   ['pca9685', ['pca ?9685','controlador(?:es)? de servos','drivers? de servos']],
   ['ds1302', ['ds ?1302','rtc','reloj de tiempo real','modulos? de hora','modulos? reloj']],
@@ -3203,6 +3300,7 @@ function parseRequest(text){
     for (let k = nm; k < 2; k++) items.push({type:'motor'});
   }
   if (has('pca9685') && !has('supply')) items.push({type:'supply'});
+  if (has('battery')) items.forEach(i => { if (i.type === 'battery' || i.type === 'oled') i.top = true; });
   if (has('relay') && !has('pump12')){ const mi = items.findIndex(i => i.type === 'motor'); if (mi >= 0) items[mi] = {type:'pump12'}; else items.push({type:'pump12'}); }
   if (has('pump12') && !has('relay')) items.push({type:'relay'});
   if (has('pump12') && !has('supply12')) items.push({type:'supply12'});
@@ -3241,6 +3339,7 @@ const AI_CATALOG = `Catálogo (usa SOLO estos "tipo"; las patas que van a un pin
 - buzzer: zumbador, tone()/noTone(). Pata "p" al pin.
 - servo: servo SG90 0–180°, librería Servo.h. Pata "s" al pin.
 - motor: motor DC (también sirve para simular bombas de agua, ventiladores, válvulas o relés que encienden algo), velocidad con analogWrite. Pata "p" a un pin PWM.
+- battery: batería de litio de 3.3 V (sin pines): alimenta por su riel módulos de 3.3 V como la oled. El Arduino Uno NO prende con ella (necesita 5 V o 7–12 V en VIN).
 - oled: pantalla OLED 0.96" SSD1306 128x64 (I2C, dirección 0x3C). Patas "d" (SDA) a A4 y "c" (SCL) a A5. Librerías Adafruit_GFX y Adafruit_SSD1306: Adafruit_SSD1306 display(128, 64, &Wire, -1); display.begin(SSD1306_SWITCHCAPVCC, 0x3C); clearDisplay(); setTextSize(n); setTextColor(SSD1306_WHITE); setCursor(x, y); print(...); drawLine/drawRect/fillRect/drawCircle/fillCircle; display.display() para mostrar.
 - pca9685: controlador de servos PCA9685 (I2C). Patas "d" (SDA) a A4 y "c" (SCL) a A5. Campo "direccion": 64 (0x40) o 65 (0x41). Sus canales 0–6 y 7–13 mueven los 7 segmentos de 2 dígitos de un display mecánico. Librería Adafruit_PWMServoDriver: pwm.begin(); pwm.setPWMFreq(50); pwm.setPWM(canal, 0, pulso) con pulso 102 (0°) a 512 (180°). Incluye supply para V+.
 - ds1302: módulo de hora. Patas "k" (CLK), "d" (DAT), "r" (RST) a pines digitales. Librería virtuabotixRTC reloj(CLK, DAT, RST); reloj.updateTime(); reloj.hours, reloj.minutes, reloj.seconds.
@@ -3282,6 +3381,7 @@ function normalizeAI(r){
   if (items.some(i => i.type === 'pump12')){ if (!items.some(i => i.type === 'relay')) items.push({type:'relay', aiPins:{}}); if (!items.some(i => i.type === 'supply12')) items.push({type:'supply12', aiPins:{}, aiName:'Fuente 12 V'}); }
   items.forEach(i => { if (i.type === 'pump12' || i.type === 'supply12') i.top = true; });
   if (items.some(i => i.type === 'supply')) items.forEach(i => { if (i.type === 'servo' || i.type === 'supply') i.top = true; });
+  if (items.some(i => i.type === 'battery')) items.forEach(i => { if (i.type === 'battery' || i.type === 'oled') i.top = true; });
   return {items, title: r.titulo ? String(r.titulo).slice(0, 80) : '', idea: r.idea ? String(r.idea).slice(0, 400) : '',
     notes: Array.isArray(r.notas) ? r.notas.slice(0, 8).map(n => String(n).slice(0, 400)) : [],
     extra: Array.isArray(r.materiales_extra) ? r.materiales_extra.slice(0, 8).map(n => String(n).slice(0, 60)) : [],
@@ -3396,7 +3496,7 @@ function makePlan(text, ai = null){
   }
   // nombres para el código
   const total = {}; plan.items.forEach(i => total[i.type] = (total[i.type] || 0) + 1);
-  const BASE = {oled:'', pca9685:'', ds1302:'', relay:'RELE', pump12:'BOMBA', supply12:'FUENTE12', supply:'FUENTE', led:'LED', rgb:'RGB', button:'BOTON', switch:'INTERRUPTOR', pot:'POT', ldr:'LDR', lm35:'SENSOR_TEMP', pir:'PIR', sonar:'', buzzer:'ZUMBADOR', servo:'SERVO', motor:'MOTOR'};
+  const BASE = {battery:'', oled:'', pca9685:'', ds1302:'', relay:'RELE', pump12:'BOMBA', supply12:'FUENTE12', supply:'FUENTE', led:'LED', rgb:'RGB', button:'BOTON', switch:'INTERRUPTOR', pot:'POT', ldr:'LDR', lm35:'SENSOR_TEMP', pir:'PIR', sonar:'', buzzer:'ZUMBADOR', servo:'SERVO', motor:'MOTOR'};
   const colorCount = {}; plan.items.forEach(i => { if (i.type === 'led') colorCount[i.color] = (colorCount[i.color] || 0) + 1; });
   plan.items.forEach(i => {
     if (i.type === 'led') i.sym = colorCount[i.color] === 1 && total.led > 1 ? 'LED_' + i.color.toUpperCase() : total.led > 1 ? `LED${i.n}` : 'LED';
@@ -3467,7 +3567,7 @@ function buildFromPlan(plan){
   // colocación: arriba (filas a–e) la fuente externa y lo que alimenta; abajo (f–j) lo demás
   const cur = {6: 1, 1: 1};
   const placed = [];
-  const first = t => ['supply','supply12'].includes(t) ? 0 : t === 'relay' ? 1 : 2;
+  const first = t => ['supply','supply12','battery'].includes(t) ? 0 : t === 'relay' ? 1 : 2;
   const ordered = [...plan.items].sort((a, b) => first(a.type) - first(b.type));
   for (const it of ordered){
     const T = TYPES[it.type], R = ROLE[it.type];
@@ -3509,7 +3609,7 @@ function genCode(plan){
   if (servos.length){ L.push('#include <Servo.h>'); }
   L.push('');
   for (const i of it){
-    if (['supply','supply12','pump12','pca9685','ds1302','oled'].includes(i.type)) continue;
+    if (['supply','supply12','pump12','pca9685','ds1302','oled','battery'].includes(i.type)) continue;
     if (i.type === 'rgb'){ L.push(`const int ${i.sym}_R = ${pn(i.pins.r)};`, `const int ${i.sym}_G = ${pn(i.pins.g)};`, `const int ${i.sym}_B = ${pn(i.pins.b)};`); }
     else if (i.type === 'sonar'){ const s = sonars.length > 1 ? i.n : ''; i.trig = 'TRIG' + s; i.echo = 'ECHO' + s; L.push(`const int ${i.trig} = ${pn(i.pins.t)};`, `const int ${i.echo} = ${pn(i.pins.e)};`); }
     else { const k = Object.keys(i.pins)[0]; L.push(`const int ${i.sym} = ${pn(i.pins[k])};`); }
@@ -3645,6 +3745,13 @@ function v3Model(c){
       g.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.55, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), M(0xF4F4F2, {t: .85})), 0, 1, 0));
       [['r', -0.45, 1.8], ['k', -0.15, 2.2], ['g', 0.15, 1.8], ['b', 0.45, 1.8]].forEach(([id, x, l]) => lead(id, x, 0, l));
       g.userData.rgb = true;
+      break; }
+    case 'battery': {
+      const b = cyl(0.55, 0.55, 2.6, 0x2B5FAF, {r: .35}); b.rotation.z = Math.PI / 2; g.add(at(b, 0, 1.0, 0));
+      const tip = cyl(0.2, 0.2, 0.2, 0xB8BEC2, {m: .8}); tip.rotation.z = Math.PI / 2; g.add(at(tip, 1.4, 1.0, 0));
+      const t = v3Text((+c.volt || 3.3) + ' V', {size: 46, bg: null, scale: .006}); t.position.set(0, 1.05, 0.6); g.add(t);
+      g.add(at(box(0.08, 0.9, 0.08, 0xD9473F), -0.3, 0.25, 0.3)); pins.p = new THREE.Vector3(-0.3, -0.2, 0.3);
+      g.add(at(box(0.08, 0.9, 0.08, 0x222222), 0.3, 0.25, 0.3)); pins.n = new THREE.Vector3(0.3, -0.2, 0.3);
       break; }
     case 'oled': {
       g.add(at(box(2.7, 0.1, 2.7, 0x1F4E9A), 0, 1.4, -0.2));
@@ -4426,6 +4533,13 @@ async function start(){
   diags = []; warned = new Set(); badLine = 0;
   review(false);
   const short = issues.find(i => i.lvl === 'err' && /^(Cortocircuito|Peligro)/.test(i.msg));
+  const nousb = comps.find(c => c.type === 'battery' && c.nousb);
+  if (nousb){
+    buildNets();
+    const vin = infoOf(find('VIN')), v5 = infoOf(find('V5'));
+    const ext = (vin.v12) || (v5.ext5);
+    if (!ext){ setStatus('err'); showPop({lvl:'err', cid: nousb.id, msg:'El Arduino no prende: sin USB no le llega suficiente energía', why:`Quitaste el USB y el Arduino solo tiene la batería de ${+nousb.volt || 3.3} V. El Arduino Uno necesita 5 V en el pin 5V o de 7 a 12 V en VIN (por ejemplo, una batería de 9 V). La batería de 3.3 V solo sirve para módulos como la pantalla OLED. Desmarca «Probar sin USB» en la tarjeta de la batería para seguir probando.`}); addDiag('e', '<b>No se ejecuta:</b> el Arduino no tiene energía (modo «sin USB»).'); return; }
+  }
   if (short){ setStatus('err'); showPop(short); addDiag('e', '<b>No se ejecuta:</b> hay un cortocircuito o 12 V donde no deben ir. Revisa la «Revisión del circuito».'); return; }
   let js;
   try { js = transpile($('#code').value); }
@@ -4587,6 +4701,7 @@ function frame(now){
         c.rot = (c.rot + (on ? 900 : 0) * dt) % 360; s.rotor.setAttribute('transform', `rotate(${c.rot} 22 -40)`); s.water.setAttribute('opacity', on ? 1 : 0);
         txt = on ? 'bombeando agua' : m.mode ? 'detenida' : 'sin conectar'; break; }
       case 'supply12': txt = '12 V'; break;
+      case 'battery': txt = `${+c.volt || 3.3} V` + (c.nousb ? ' · sin USB' : ''); break;
       case 'oled': {
         const sh = oledShow[+c.addr || 60];
         if (s.oimg && (oledDirty || !c._painted || c._shown !== sh)){ c._painted = true; c._shown = sh; s.oimg.setAttribute('href', oledImage(sh)); }
