@@ -280,7 +280,7 @@ select.sel{border:1px solid var(--line);background:var(--surface);border-radius:
   <header class="top">
     <div class="brand">
       <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="5" width="36" height="28" rx="4" fill="var(--pcb)"/><rect x="0" y="11" width="9" height="8" fill="var(--metal)"/><rect x="16" y="20" width="16" height="6" rx="1" fill="var(--chip)"/><rect x="12" y="7" width="22" height="4" fill="var(--hdr)"/><circle cx="13" cy="25" r="2" fill="var(--hot)"/></svg>
-      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.20-1320</span></p></div>
+      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.22-1147</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -447,6 +447,8 @@ const TYPES = {
             legs:[{dx:0,id:'g',l:'GND',n:'GND (café)'},{dx:1,id:'v',l:'5V',n:'5V (rojo)'},{dx:2,id:'s',l:'SIG',n:'señal (naranja)'}]},
   motor:   {name:'Motor DC', tag:'Actuador', desc:'Velocidad con analogWrite', keys:['motor','dc','ventilador','motor dc','rueda'], fp:[0,2],
             legs:[{dx:0,id:'p',l:'+',n:'+'},{dx:2,id:'n',l:'−',n:'−'}]},
+  oled:    {name:'Pantalla OLED 0.96″', tag:'Salida', desc:'Pantalla de 128×64 puntos (SSD1306) por I2C: textos, números y dibujos', keys:['oled','pantalla oled','pantalla','display oled','ssd1306','0.96','096','display'], fp:[-3,6],
+            legs:[{dx:0,id:'g',l:'GND',n:'GND'},{dx:1,id:'v',l:'VCC',n:'VCC'},{dx:2,id:'c',l:'SCL',n:'SCL (reloj I2C)'},{dx:3,id:'d',l:'SDA',n:'SDA (datos I2C)'}]},
   pca9685: {name:'Controlador de servos PCA9685', tag:'Control', desc:'Maneja hasta 16 servos con 2 cables (I2C: SDA y SCL)', keys:['pca9685','pca','controlador de servos','driver de servos','16 servos','i2c'], fp:[-1,6],
             legs:[{dx:0,id:'g',l:'GND',n:'GND'},{dx:1,id:'o',l:'OE',n:'OE (no se usa)'},{dx:2,id:'c',l:'SCL',n:'SCL (reloj I2C)'},{dx:3,id:'d',l:'SDA',n:'SDA (datos I2C)'},{dx:4,id:'v',l:'VCC',n:'VCC (lógica 5 V)'},{dx:5,id:'p',l:'V+',n:'V+ (energía de los servos)'}]},
   ds1302:  {name:'Módulo de hora DS1302', tag:'Sensor', desc:'Reloj de tiempo real con pila: guarda la hora aunque se apague', keys:['ds1302','rtc','reloj de tiempo real','modulo de hora','modulo reloj','hora'], fp:[-1,5],
@@ -458,7 +460,7 @@ const TYPES = {
   supply12:{name:'Fuente 12 V', tag:'Energía', desc:'Adaptador de 12 V / 2 A para bombas y motores de 12 V', keys:['fuente 12v','fuente de 12','adaptador 12','12 voltios','bateria 12'], fp:[-1,2],
             legs:[{dx:0,id:'p',l:'+',n:'+12V'},{dx:1,id:'n',l:'−',n:'− (GND de 12 V)'}]},
 };
-const ORDER = ['led','resistor','rgb','button','switch','pot','ldr','lm35','pir','sonar','buzzer','servo','motor','relay','pump12','supply12','supply','pca9685','ds1302'];
+const ORDER = ['oled','led','resistor','rgb','button','switch','pot','ldr','lm35','pir','sonar','buzzer','servo','motor','relay','pump12','supply12','supply','pca9685','ds1302'];
 const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
 
 /* ---------------- Escena ---------------- */
@@ -535,8 +537,8 @@ scene.querySelectorAll('[data-ring]').forEach(e => ringEls[e.dataset.ring] = e);
 
 /* ---------------- Estado ---------------- */
 let pins, tones, servoTargets, lastRead = new Array(20).fill(-1e9), lastTx = -1e9, lastRx = -1e9;
-let pcaOut = {}, rtcOffset = 0;
-function resetPins(){ pins = Array.from({length:20}, () => ({mode:'INPUT', v:0, pwm:0})); tones = {}; servoTargets = {}; pcaOut = {}; }
+let pcaOut = {}, rtcOffset = 0, oledShow = {}, oledDirty = false;
+function resetPins(){ pins = Array.from({length:20}, () => ({mode:'INPUT', v:0, pwm:0})); tones = {}; servoTargets = {}; pcaOut = {}; oledShow = {}; oledDirty = true; }
 resetPins();
 let comps = [], wires = [], nextId = 1, nextW = 1, selected = null, selWire = null, wireColor = 'auto';
 let running = false;
@@ -574,6 +576,7 @@ function makeComp(type, o = {}){
   if (type === 'sonar') c.value ??= 120;
   if (type === 'resistor') c.ohm ??= '220 Ω';
   if (type === 'switch' || type === 'pir') c.on ??= false;
+  if (type === 'oled') c.addr ??= 60;
   if (type === 'pca9685') c.addr ??= (comps.filter(x => x.type === 'pca9685').length ? 64 + comps.filter(x => x.type === 'pca9685').length : 64);
   c.disp = 90; c.rot = 0; c.pressed = false; c.onT = 0; c.burnt ??= false; c.m = {};
   return c;
@@ -968,6 +971,13 @@ function partSVG(c){
         <circle cx="0" cy="-24" r="7" fill="#D9473F"/><text x="0" y="-20.5" text-anchor="middle" fill="#fff" style="font:700 10px var(--f-mono)">+</text>
         <circle cx="22" cy="-24" r="7" fill="#111" stroke="#555"/><text x="22" y="-20.5" text-anchor="middle" fill="#fff" style="font:700 10px var(--f-mono)">−</text>`;
       box = [-28, -66, 78, 18]; break;
+    case 'oled':
+      s = `${[0,1,2,3].map(i => leg(i * 22, 0, i * 22, -8)).join('')}<rect x="-58" y="-124" width="182" height="116" rx="6" fill="#1F4E9A"/>
+        <circle cx="-50" cy="-116" r="3.5" fill="#163a75"/><circle cx="116" cy="-116" r="3.5" fill="#163a75"/><circle cx="-50" cy="-16" r="3.5" fill="#163a75"/><circle cx="116" cy="-16" r="3.5" fill="#163a75"/>
+        <rect x="-52" y="-114" width="170" height="90" rx="3" fill="#050607"/>
+        <image class="oledimg" x="-47" y="-109" width="160" height="80" preserveAspectRatio="none" style="image-rendering:pixelated" href=""/>
+        <text x="33" y="-14" text-anchor="middle" fill="#cfe0ff" style="font:600 6px var(--f-mono)">GND  VCC  SCL  SDA</text>`;
+      box = [-64, -130, 194, 18]; break;
     case 'pca9685': {
       let hdr = '';
       for (let k = 0; k < 16; k++){ const x = -6 + k * 7.6; hdr += `<rect x="${x}" y="-60" width="5" height="5" fill="#1a1a1a"/><rect x="${x}" y="-53" width="5" height="5" fill="#C0392B"/><rect x="${x}" y="-46" width="5" height="5" fill="#E6B82E"/>`; }
@@ -1029,7 +1039,7 @@ function renderParts(){
     el.innerHTML = partSVG(c);
     g.appendChild(el);
     c.g = el;
-    c.s = {glow: $('.glow', el), dome: $('.dome', el), cap: $('.cap', el), knob: $('.knob', el), horn: $('.horn', el), face: $('.face', el), rotor: $('.rotor', el), ind: $('.ind', el), waves: $('.waves', el), burn: $('.burn', el), water: $('.water', el), rled: $('.rled', el), contact: $('.contact', el), pled: $('.pled', el)};
+    c.s = {glow: $('.glow', el), dome: $('.dome', el), cap: $('.cap', el), knob: $('.knob', el), horn: $('.horn', el), face: $('.face', el), rotor: $('.rotor', el), ind: $('.ind', el), waves: $('.waves', el), burn: $('.burn', el), water: $('.water', el), rled: $('.rled', el), contact: $('.contact', el), pled: $('.pled', el), oimg: $('.oledimg', el)};
     posPart(c);
   }
 }
@@ -1181,6 +1191,7 @@ function cardCtl(c){
     case 'lm35': return `<label>Temperatura</label><input type="range" min="-10" max="110" value="${c.value}" data-k="value" aria-label="Temperatura">`;
     case 'pir': return `<label>Hay movimiento<input type="checkbox" data-k="on"${c.on?' checked':''}></label>`;
     case 'sonar': return `<label>Distancia del objeto</label><input type="range" min="2" max="400" value="${c.value}" data-k="value" aria-label="Distancia al objeto">`;
+    case 'oled': return `<label>Dirección I2C<select data-k="addr">${[60,61].map(a => `<option value="${a}"${a === (+c.addr || 60) ? ' selected' : ''}>0x${a.toString(16).toUpperCase()}</option>`).join('')}</select></label><div class="note">Casi todas las pantallas de 0.96″ usan 0x3C.</div>`;
     case 'pca9685': return `<label>Dirección I2C<select data-k="addr">${[64,65,66,67].map(a => `<option value="${a}"${a === (+c.addr || 64) ? ' selected' : ''}>0x${a.toString(16)}</option>`).join('')}</select></label><div class="note">Canales 0–6 y 7–13 mueven 2 dígitos del display mecánico.</div>`;
     case 'ds1302': return `<div class="note">Usa la hora del computador. Con setDS1302Time() puedes ponerle otra hora.</div>`;
     case 'resistor': return `<label>Valor<select data-k="ohm">${['220 Ω','1 kΩ','10 kΩ'].map(v=>`<option${v===c.ohm?' selected':''}>${v}</option>`).join('')}</select></label>`;
@@ -1422,6 +1433,7 @@ const ICON = {
   buzzer:'<circle cx="12" cy="12" r="9" fill="#1A1C1E"/><circle cx="12" cy="12" r="2" fill="#000"/>',
   servo:'<rect x="2" y="8" width="20" height="12" rx="2" fill="#2A5FC7"/><rect x="13" y="2" width="4" height="10" rx="2" fill="#f4f4f4"/>',
   motor:'<circle cx="12" cy="12" r="9" fill="#A9B0B5"/><path d="M12 12V5M12 12l6 3M12 12l-6 3" stroke="#3a3f42" stroke-width="2.5"/>',
+  oled:'<rect x="2" y="3" width="20" height="18" rx="2" fill="#1F4E9A"/><rect x="4" y="5" width="16" height="10" fill="#050607"/><rect x="6" y="8" width="9" height="1.6" fill="#7fd4ff"/><rect x="6" y="11" width="6" height="1.6" fill="#7fd4ff"/>',
   pca9685:'<rect x="1" y="5" width="22" height="14" rx="2" fill="#2C2F7A"/><rect x="3" y="7" width="18" height="3" fill="#E6B82E"/><rect x="9" y="12" width="7" height="5" fill="#151515"/>',
   ds1302:'<rect x="2" y="5" width="20" height="14" rx="2" fill="#1F5FA8"/><circle cx="15" cy="12" r="5" fill="#C9CED2"/>',
   relay:'<rect x="1" y="5" width="22" height="14" rx="2" fill="#1F5FA8"/><rect x="4" y="7" width="9" height="10" fill="#1E3F86"/><rect x="15" y="8" width="7" height="8" fill="#2E8B57"/>',
@@ -1461,6 +1473,7 @@ function addFromSearch(t){
   drawSug();
 }
 const HOWTO = {
+  oled:'GND al riel −, VCC al riel + (5V), SCL a A5 y SDA a A4. Es I2C: puede compartir A4 y A5 con otros módulos I2C.',
   pca9685:'GND al riel −, VCC al riel + (5V del Arduino), SCL a A5 y SDA a A4. V+ va a la fuente externa de 5 V que mueve los servos. OE no se conecta.',
   ds1302:'VCC al riel + (5V), GND al riel −, CLK a D6, DAT a D7 y RST a D8.',
   relay:'Lado de control: VCC al riel + (5V), GND al riel − y IN a un pin digital. Lado de carga: COM al + de la fuente de 12 V y NO al + de la bomba.',
@@ -2646,6 +2659,79 @@ void loop() {
   delay(200);
 }
 `},
+{keys:['oled','pantalla oled','pantalla','mostrar en pantalla','display oled','ssd1306','0.96','096','0,96'], titulo:'Pantalla OLED 0.96″: textos y dibujos',
+ idea:'La pantalla OLED muestra un saludo, un contador de segundos, el valor del potenciómetro con una barra que se llena y un círculo que se mueve. Mueve el potenciómetro y mira cómo cambia.',
+ componentes:[{tipo:'oled',nombre:'Pantalla OLED 0.96″'},{tipo:'pot',nombre:'Potenciómetro',pines:{w:'A0'}}],
+ materiales_extra:[],
+ notas:['La pantalla OLED de 0.96″ tiene 128 × 64 puntos y usa I2C: solo 2 cables de datos. SDA va a A4 y SCL a A5 (siempre esos en el Arduino Uno).',
+  'Revisa el orden de los pines en tu pantalla: la mayoría dice GND, VCC, SCL, SDA, pero algunas traen VCC y GND al revés.',
+  'En el Arduino IDE instala las librerías «Adafruit SSD1306» y «Adafruit GFX Library» (Programa → Incluir librería → Administrar bibliotecas).',
+  'La dirección casi siempre es 0x3C. Si tu pantalla queda en negro, prueba con 0x3D.',
+  'Todo lo que dibujas se prepara en memoria: solo aparece en la pantalla cuando llamas a display.display().',
+  'Coordenadas: x va de 0 a 127 (izquierda a derecha) e y de 0 a 63 (arriba hacia abajo). Con setTextSize(2) las letras salen el doble de grandes.'],
+ codigo:`// Pantalla OLED 0.96" (SSD1306): textos, números y dibujos
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define ANCHO 128
+#define ALTO 64
+Adafruit_SSD1306 display(ANCHO, ALTO, &Wire, -1);
+
+const int POT = A0;
+
+void setup() {
+  Serial.begin(9600);
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("No encuentro la pantalla OLED: revisa SDA (A4) y SCL (A5)");
+    while (true) {
+      delay(1000);
+    }
+  }
+  // pantalla de bienvenida
+  display.clearDisplay();
+  display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(2);
+  display.setCursor(10, 10);
+  display.println("Hola!");
+  display.setTextSize(1);
+  display.setCursor(10, 40);
+  display.println("Banco Arduino");
+  display.display();
+  delay(2000);
+}
+
+void loop() {
+  int valor = analogRead(POT);              // 0 a 1023
+  int barra = map(valor, 0, 1023, 0, 116);  // largo de la barra
+  long segundos = millis() / 1000;
+
+  display.clearDisplay();
+
+  // título
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.print("Segundos: ");
+  display.println(segundos);
+
+  // valor grande
+  display.setTextSize(2);
+  display.setCursor(0, 14);
+  display.print(valor);
+
+  // barra que se llena con el potenciómetro
+  display.drawRect(4, 38, 120, 10, SSD1306_WHITE);
+  display.fillRect(6, 40, barra, 6, SSD1306_WHITE);
+
+  // círculo que se mueve con el potenciómetro
+  display.fillCircle(8 + barra, 57, 5, SSD1306_WHITE);
+
+  display.display();
+  Serial.print("Potenciómetro: ");
+  Serial.println(valor);
+  delay(100);
+}
+`},
 ];
 function findLibrary(text){
   const t = ' ' + norm(text).replace(/[.,;:¡!¿?()]/g, ' ') + ' ';
@@ -2679,6 +2765,7 @@ const ROLE = {
   relay:{v:{to:'5v'}, g:{to:'gnd'}, i:{to:'pin', kind:'out'}, c:{to:'v12'}, o:{to:'pumpP'}},
   pump12:{p:{to:'relayNO'}, n:{to:'g12'}},
   supply12:{p:{to:'v12'}, n:{to:'g12'}},
+  oled:{g:{to:'gnd'}, v:{to:'5v'}, c:{to:'pin', kind:'scl'}, d:{to:'pin', kind:'sda'}},
   pca9685:{g:{to:'gnd'}, c:{to:'pin', kind:'scl'}, d:{to:'pin', kind:'sda'}, v:{to:'5v'}, p:{to:'rail+'}},
   ds1302:{v:{to:'5v'}, g:{to:'gnd'}, k:{to:'pin', kind:'clk'}, d:{to:'pin', kind:'dat'}, r:{to:'pin', kind:'rst'}},
 };
@@ -2686,6 +2773,16 @@ TYPES.supply = {name:'Fuente 5 V externa', tag:'Energía', desc:'Fuente o portap
   legs:[{dx:0,id:'p',l:'+',n:'+ de la fuente'},{dx:1,id:'n',l:'−',n:'− de la fuente'}]};
 const legOf = (c, id) => TYPES[c.type].legs.find(l => l.id === id);
 const netOfLeg = (c, id) => net(legHole(c, legOf(c, id)));
+EVAL.oled = (c, N) => {
+  const ok = power(c, N.v, N.g);
+  const sda = signal(c, N.d, 'SDA', false), scl = signal(c, N.c, 'SCL', false);
+  if (sda != null && sda !== 18) iss('err', `SDA de la pantalla va a ${pinName(sda)}, debe ir a A4`, 'La pantalla OLED usa I2C. En el Arduino Uno el I2C siempre va en <b>SDA = A4</b> y <b>SCL = A5</b>; en otro pin la pantalla queda en negro.');
+  if (scl != null && scl !== 19) iss('err', `SCL de la pantalla va a ${pinName(scl)}, debe ir a A5`, 'En el Arduino Uno el I2C siempre va en <b>SDA = A4</b> y <b>SCL = A5</b>.');
+  if (N.c === N.d && touched(N.c)) iss('err', 'SDA y SCL de la pantalla están unidos', 'Son dos cables distintos: SDA lleva los datos y SCL el ritmo. Unidos, la pantalla no entiende nada.');
+  const okAll = ok && sda === 18 && scl === 19;
+  if (okAll) iss('ok', 'Pantalla OLED bien conectada', `GND y VCC alimentan la pantalla; SDA en A4 y SCL en A5. En el código: display.begin(SSD1306_SWITCHCAPVCC, 0x${(+c.addr || 60).toString(16).toUpperCase()});`);
+  c.m = {ok: okAll};
+};
 EVAL.pca9685 = (c, N) => {
   const ok = power(c, N.v, N.g);
   const sda = signal(c, N.d, 'SDA', false), scl = signal(c, N.c, 'SCL', false);
@@ -2772,6 +2869,7 @@ const LEGTXT = {
   pump12:{p:'Cable + (rojo) de la bomba', n:'Cable − (negro) de la bomba'},
   supply12:{p:'Borne +12V', n:'Borne −'},
   pca9685:{g:'GND', c:'SCL', d:'SDA', v:'VCC', p:'V+ (servos)'},
+  oled:{g:'GND', v:'VCC', c:'SCL', d:'SDA'},
   ds1302:{v:'VCC', g:'GND', k:'CLK', d:'DAT', r:'RST'},
 };
 const pinIdOf = p => p < 14 ? 'P:D' + p : 'P:A' + (p - 14);
@@ -2990,7 +3088,7 @@ function autoWireUser(c){
 
 
 /* ================= Energía, fuentes y controladores ================= */
-const CURRENT = {led:[15,15], rgb:[45,45], buzzer:[30,30], servo:[150,650], motor:[200,1000], sonar:[15,15], pir:[1,1], lm35:[1,1], pot:[1,1], ldr:[1,1], button:[0,0], switch:[0,0], resistor:[0,0], supply:[0,0], relay:[70,70], pump12:[0,0], supply12:[0,0], pca9685:[10,10], ds1302:[1,1]};
+const CURRENT = {led:[15,15], rgb:[45,45], buzzer:[30,30], servo:[150,650], motor:[200,1000], sonar:[15,15], pir:[1,1], lm35:[1,1], pot:[1,1], ldr:[1,1], button:[0,0], switch:[0,0], resistor:[0,0], supply:[0,0], relay:[70,70], pump12:[0,0], supply12:[0,0], pca9685:[10,10], ds1302:[1,1], oled:[20,20]};
 function powerAdvice(counts, flags = {}){
   const n = t => counts[t] || 0, s = n('servo'), mo = n('motor');
   let run = 50, peak = 50;
@@ -3049,6 +3147,7 @@ function powerAdvice(counts, flags = {}){
 const NUMW = {un:1, una:1, uno:1, dos:2, tres:3, cuatro:4, cinco:5, seis:6, siete:7, ocho:8};
 const COLORS = ['rojo','verde','amarillo','azul','blanco'];
 const PARSE = [
+  ['oled', ['pantallas? oled','oled','ssd1306','pantallas?','displays? oled','0[.,]?96']],
   ['pca9685', ['pca ?9685','controlador(?:es)? de servos','drivers? de servos']],
   ['ds1302', ['ds ?1302','rtc','reloj de tiempo real','modulos? de hora','modulos? reloj']],
   ['relay', ['modulos? (?:de )?reles?','reles?','relevador(?:es)?','relays?','contactor(?:es)?']],
@@ -3145,6 +3244,7 @@ const AI_CATALOG = `Catálogo (usa SOLO estos "tipo"; las patas que van a un pin
 - buzzer: zumbador, tone()/noTone(). Pata "p" al pin.
 - servo: servo SG90 0–180°, librería Servo.h. Pata "s" al pin.
 - motor: motor DC (también sirve para simular bombas de agua, ventiladores, válvulas o relés que encienden algo), velocidad con analogWrite. Pata "p" a un pin PWM.
+- oled: pantalla OLED 0.96" SSD1306 128x64 (I2C, dirección 0x3C). Patas "d" (SDA) a A4 y "c" (SCL) a A5. Librerías Adafruit_GFX y Adafruit_SSD1306: Adafruit_SSD1306 display(128, 64, &Wire, -1); display.begin(SSD1306_SWITCHCAPVCC, 0x3C); clearDisplay(); setTextSize(n); setTextColor(SSD1306_WHITE); setCursor(x, y); print(...); drawLine/drawRect/fillRect/drawCircle/fillCircle; display.display() para mostrar.
 - pca9685: controlador de servos PCA9685 (I2C). Patas "d" (SDA) a A4 y "c" (SCL) a A5. Campo "direccion": 64 (0x40) o 65 (0x41). Sus canales 0–6 y 7–13 mueven los 7 segmentos de 2 dígitos de un display mecánico. Librería Adafruit_PWMServoDriver: pwm.begin(); pwm.setPWMFreq(50); pwm.setPWM(canal, 0, pulso) con pulso 102 (0°) a 512 (180°). Incluye supply para V+.
 - ds1302: módulo de hora. Patas "k" (CLK), "d" (DAT), "r" (RST) a pines digitales. Librería virtuabotixRTC reloj(CLK, DAT, RST); reloj.updateTime(); reloj.hours, reloj.minutes, reloj.seconds.
 - relay: módulo relé de 5 V (activo en HIGH). Pata "i" (IN) a un pin digital. Úsalo para encender cargas de 12 V o 110 V.
@@ -3299,7 +3399,7 @@ function makePlan(text, ai = null){
   }
   // nombres para el código
   const total = {}; plan.items.forEach(i => total[i.type] = (total[i.type] || 0) + 1);
-  const BASE = {pca9685:'', ds1302:'', relay:'RELE', pump12:'BOMBA', supply12:'FUENTE12', supply:'FUENTE', led:'LED', rgb:'RGB', button:'BOTON', switch:'INTERRUPTOR', pot:'POT', ldr:'LDR', lm35:'SENSOR_TEMP', pir:'PIR', sonar:'', buzzer:'ZUMBADOR', servo:'SERVO', motor:'MOTOR'};
+  const BASE = {oled:'', pca9685:'', ds1302:'', relay:'RELE', pump12:'BOMBA', supply12:'FUENTE12', supply:'FUENTE', led:'LED', rgb:'RGB', button:'BOTON', switch:'INTERRUPTOR', pot:'POT', ldr:'LDR', lm35:'SENSOR_TEMP', pir:'PIR', sonar:'', buzzer:'ZUMBADOR', servo:'SERVO', motor:'MOTOR'};
   const colorCount = {}; plan.items.forEach(i => { if (i.type === 'led') colorCount[i.color] = (colorCount[i.color] || 0) + 1; });
   plan.items.forEach(i => {
     if (i.type === 'led') i.sym = colorCount[i.color] === 1 && total.led > 1 ? 'LED_' + i.color.toUpperCase() : total.led > 1 ? `LED${i.n}` : 'LED';
@@ -3412,7 +3512,7 @@ function genCode(plan){
   if (servos.length){ L.push('#include <Servo.h>'); }
   L.push('');
   for (const i of it){
-    if (['supply','supply12','pump12','pca9685','ds1302'].includes(i.type)) continue;
+    if (['supply','supply12','pump12','pca9685','ds1302','oled'].includes(i.type)) continue;
     if (i.type === 'rgb'){ L.push(`const int ${i.sym}_R = ${pn(i.pins.r)};`, `const int ${i.sym}_G = ${pn(i.pins.g)};`, `const int ${i.sym}_B = ${pn(i.pins.b)};`); }
     else if (i.type === 'sonar'){ const s = sonars.length > 1 ? i.n : ''; i.trig = 'TRIG' + s; i.echo = 'ECHO' + s; L.push(`const int ${i.trig} = ${pn(i.pins.t)};`, `const int ${i.echo} = ${pn(i.pins.e)};`); }
     else { const k = Object.keys(i.pins)[0]; L.push(`const int ${i.sym} = ${pn(i.pins[k])};`); }
@@ -3548,6 +3648,13 @@ function v3Model(c){
       g.add(at(new THREE.Mesh(new THREE.SphereGeometry(0.55, 28, 14, 0, Math.PI * 2, 0, Math.PI / 2), M(0xF4F4F2, {t: .85})), 0, 1, 0));
       [['r', -0.45, 1.8], ['k', -0.15, 2.2], ['g', 0.15, 1.8], ['b', 0.45, 1.8]].forEach(([id, x, l]) => lead(id, x, 0, l));
       g.userData.rgb = true;
+      break; }
+    case 'oled': {
+      g.add(at(box(2.7, 0.1, 2.7, 0x1F4E9A), 0, 1.4, -0.2));
+      const scr = box(2.4, 0.06, 1.4, 0x050607, {r: .2}); g.add(at(scr, 0, 1.47, -0.4));
+      const t = v3Text('OLED 128×64', {size: 36, bg: null, color: '#7fd4ff', scale: .005}); t.position.set(0, 1.6, -0.4); g.add(t);
+      ['g', 'v', 'c', 'd'].forEach((id, i) => { const x = -0.53 + i * 0.35; g.add(at(box(0.08, 1.3, 0.08, 0xD8B24A, {m: .9}), x, 0.7, 0.95)); pins[id] = new THREE.Vector3(x, 0.05, 0.95); });
+      g.add(at(box(1.4, 0.25, 0.25, 0x111111), 0, 1.25, 0.95));
       break; }
     case 'resistor': {
       const body = cyl(0.32, 0.32, 1.6, 0xDCC58F, {}, 24); body.rotation.z = Math.PI / 2; g.add(at(body, 0, 0.3, 0));
@@ -4046,6 +4153,9 @@ function transpile(src){
   if (br) throw Object.assign(new Error(br.msg), {userLine: br.line});
   s = s.replace(/^[ \t]*#include[^\n]*/gm, '');
   s = s.replace(/^[ \t]*#define[ \t]+(\w+)[ \t]+([^\n]*)/gm, (m, n, v) => `const ${n} = ${v.trim()};`);
+  s = s.replace(/&\s*Wire\b/g, 'Wire');
+  s = s.replace(/\bAdafruit_SSD1306\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*;/g, 'let $1 = new Adafruit_SSD1306($2);');
+  s = s.replace(/\bAdafruit_SSD1306\s+([A-Za-z_]\w*)\s*;/g, 'let $1 = new Adafruit_SSD1306();');
   s = s.replace(/\bAdafruit_PWMServoDriver\s+([A-Za-z_]\w*)\s*=\s*Adafruit_PWMServoDriver\s*\(([^)]*)\)\s*;/g, 'let $1 = new Adafruit_PWMServoDriver($2);');
   s = s.replace(/\bAdafruit_PWMServoDriver\s+([A-Za-z_]\w*)\s*;/g, 'let $1 = new Adafruit_PWMServoDriver();');
   s = s.replace(/\bvirtuabotixRTC\s+([A-Za-z_]\w*)\s*\(([^)]*)\)\s*;/g, 'let $1 = new virtuabotixRTC($2);');
@@ -4136,6 +4246,65 @@ function makeApi(id){
     parseFloat(){ while (rx.length && !/[-\d.]/.test(rx[0])) rx.shift(); let s = ''; while (rx.length && /[-\d.]/.test(rx[0])) s += rx.shift(); return parseFloat(s) || 0; },
     flush(){}, setTimeout(){},
   };
+
+  class Adafruit_SSD1306 {
+    constructor(w = 128, h = 64){ this.w = Number(w) || 128; this.h = Number(h) || 64; this.buf = new Uint8Array(this.w * this.h); this.cx = 0; this.cy = 0; this.ts = 1; this.fg = 1; this.bg = -1; this.wrap = true; this.addr = 0x3C; this.inv = false; }
+    board(){ return comps.find(x => x.type === 'oled' && (+x.addr || 60) === this.addr); }
+    begin(vcc, addr = 0x3C){
+      alive(); this.addr = Number(addr) || 0x3C;
+      const c = this.board(), hx = '0x' + this.addr.toString(16).toUpperCase();
+      if (!c){ warnOnce('oledNo' + this.addr, `El código usa una pantalla OLED con dirección <b>${hx}</b>, pero no hay ninguna con esa dirección en la protoboard. Agrégala (búscala como «oled») o cambia la dirección.`); return false; }
+      if (!c.m || !c.m.ok){ warnOnce('oledBad' + this.addr, `La pantalla OLED ${hx} no responde: revisa VCC y GND, <b>SDA → A4</b> y <b>SCL → A5</b>.`); return false; }
+      return true;
+    }
+    clearDisplay(){ this.buf.fill(0); }
+    display(){ alive(); const c = this.board(); if (c && c.m && c.m.ok){ oledShow[this.addr] = {w: this.w, h: this.h, buf: this.buf.slice(), inv: this.inv}; oledDirty = true; } }
+    invertDisplay(i){ this.inv = !!i; const c = this.board(); if (c && c.m && c.m.ok && oledShow[this.addr]){ oledShow[this.addr].inv = this.inv; oledDirty = true; } }
+    dim(){} setRotation(){} startscrollright(){} startscrollleft(){} stopscroll(){} ssd1306_command(){}
+    width(){ return this.w; } height(){ return this.h; }
+    setTextSize(s){ this.ts = Math.max(1, Math.trunc(Number(s)) || 1); }
+    setTextColor(fg, bg){ this.fg = Number(fg); this.bg = bg === undefined ? -1 : Number(bg); }
+    setCursor(x, y){ this.cx = Math.trunc(Number(x)); this.cy = Math.trunc(Number(y)); }
+    getCursorX(){ return this.cx; } getCursorY(){ return this.cy; }
+    setTextWrap(w){ this.wrap = !!w; }
+    cp437(){} setFont(){}
+    drawPixel(x, y, col = 1){ x = Math.round(x); y = Math.round(y); if (x < 0 || y < 0 || x >= this.w || y >= this.h) return; const i = y * this.w + x; col = Number(col); this.buf[i] = col === 2 ? 1 - this.buf[i] : col ? 1 : 0; }
+    drawFastHLine(x, y, w, c){ for (let i = 0; i < w; i++) this.drawPixel(x + i, y, c); }
+    drawFastVLine(x, y, h, c){ for (let i = 0; i < h; i++) this.drawPixel(x, y + i, c); }
+    drawLine(x0, y0, x1, y1, c){ x0 = Math.round(x0); y0 = Math.round(y0); x1 = Math.round(x1); y1 = Math.round(y1); const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let e = dx + dy, n = 0; for (;;){ this.drawPixel(x0, y0, c); if ((x0 === x1 && y0 === y1) || n++ > 4000) break; const e2 = 2 * e; if (e2 >= dy){ e += dy; x0 += sx; } if (e2 <= dx){ e += dx; y0 += sy; } } }
+    drawRect(x, y, w, h, c){ this.drawFastHLine(x, y, w, c); this.drawFastHLine(x, y + h - 1, w, c); this.drawFastVLine(x, y, h, c); this.drawFastVLine(x + w - 1, y, h, c); }
+    fillRect(x, y, w, h, c){ for (let j = 0; j < h; j++) this.drawFastHLine(x, y + j, w, c); }
+    fillScreen(c){ this.fillRect(0, 0, this.w, this.h, c); }
+    drawCircle(x0, y0, r, c){ for (let a = 0; a < 360; a += 1){ const t = a * Math.PI / 180; this.drawPixel(x0 + r * Math.cos(t), y0 + r * Math.sin(t), c); } }
+    fillCircle(x0, y0, r, c){ for (let y = -r; y <= r; y++){ const w = Math.round(Math.sqrt(r * r - y * y)); this.drawFastHLine(x0 - w, y0 + y, 2 * w + 1, c); } }
+    drawRoundRect(x, y, w, h, r, c){ this.drawRect(x, y, w, h, c); }
+    fillRoundRect(x, y, w, h, r, c){ this.fillRect(x, y, w, h, c); }
+    drawTriangle(x0, y0, x1, y1, x2, y2, c){ this.drawLine(x0, y0, x1, y1, c); this.drawLine(x1, y1, x2, y2, c); this.drawLine(x2, y2, x0, y0, c); }
+    fillTriangle(x0, y0, x1, y1, x2, y2, c){ const minY = Math.min(y0, y1, y2), maxY = Math.max(y0, y1, y2); for (let y = minY; y <= maxY; y++){ const xs = []; [[x0, y0, x1, y1], [x1, y1, x2, y2], [x2, y2, x0, y0]].forEach(([a, b, c2, d]) => { if ((y >= Math.min(b, d)) && (y <= Math.max(b, d)) && b !== d) xs.push(a + (y - b) * (c2 - a) / (d - b)); }); if (xs.length >= 2) this.drawFastHLine(Math.round(Math.min(...xs)), y, Math.round(Math.max(...xs) - Math.min(...xs)) + 1, c); } }
+    drawChar(x, y, ch, col, bg, s){
+      let code = String(ch).normalize('NFD').replace(/[̀-ͯ]/g, '').charCodeAt(0);
+      if (ch === '¡') code = 33; else if (ch === '¿') code = 63; else if (ch === 'º' || ch === '°') code = -1;
+      for (let r = 0; r < 8; r++){
+        const bits = code === -1 ? [0x06,0x09,0x09,0x06,0,0,0,0][r] : (code >= 32 && code < 127 ? parseInt(OLED_FONT.substr((code - 32) * 16 + r * 2, 2), 16) : 0);
+        for (let cc = 0; cc < 6; cc++){
+          const on = cc < 5 && (bits >> cc) & 1;
+          if (on) this.fillRect(x + cc * s, y + r * s, s, s, col);
+          else if (bg >= 0) this.fillRect(x + cc * s, y + r * s, s, s, bg);
+        }
+      }
+    }
+    write(t){
+      for (const ch of String(t)){
+        if (ch === '\n'){ this.cx = 0; this.cy += 8 * this.ts; continue; }
+        if (ch === '\r') continue;
+        if (this.wrap && this.cx + 6 * this.ts > this.w){ this.cx = 0; this.cy += 8 * this.ts; }
+        this.drawChar(this.cx, this.cy, ch, this.fg, this.bg, this.ts);
+        this.cx += 6 * this.ts;
+      }
+    }
+    print(x, f){ this.write(fmt(x, f)); }
+    println(x = '', f){ this.write(fmt(x, f) + '\n'); }
+  }
   class Adafruit_PWMServoDriver {
     constructor(addr = 0x40){ this.addr = Number(addr) || 0x40; }
     board(){ return comps.find(x => x.type === 'pca9685' && (+x.addr || 64) === this.addr); }
@@ -4184,7 +4353,8 @@ function makeApi(id){
   return {
     HIGH:1, LOW:0, INPUT:'INPUT', OUTPUT:'OUTPUT', INPUT_PULLUP:'INPUT_PULLUP', LED_BUILTIN:13,
     A0:14, A1:15, A2:16, A3:17, A4:18, A5:19, HEX:16, BIN:2, OCT:8, DEC:10, PI:Math.PI,
-    Serial, Servo, Adafruit_PWMServoDriver, virtuabotixRTC, Wire: {begin(){}, setClock(){}},
+    SSD1306_SWITCHCAPVCC: 2, SSD1306_EXTERNALVCC: 1, SSD1306_WHITE: 1, SSD1306_BLACK: 0, SSD1306_INVERSE: 2, WHITE: 1, BLACK: 0, INVERSE: 2,
+    Serial, Servo, Adafruit_SSD1306, Adafruit_PWMServoDriver, virtuabotixRTC, Wire: {begin(){}, setClock(){}},
     pinMode(p, m){ alive(); p = chk(p); pins[p].mode = m; },
     digitalWrite(p, v){
       alive(); p = chk(p);
@@ -4295,6 +4465,23 @@ $('#run').onclick = () => running ? stop() : start();
 document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); running ? stop() : start(); } });
 
 
+/* ---------------- Pantalla OLED ---------------- */
+const OLED_FONT = '00000000000000000004040404000400000a0a0a000000000a0a1f0a1f0a0a00040e050e140e040000020a040a0800000205050205050a00000404040000000000040202020204000002040404040200000009060f060900000004041f04040000000000000c0402000000000f0000000000000000040e04000808040201010000040a0a0a0a04000004060404040e000006090806010f00000f040608090600000406050f040400000f0107080906000006010709090600000f0804040202000006090609090600000609090e080600000006060006060000000c0c000c040200080402020408000000000f000f0000000204080804020000040a08040004000c1219151509020c000609090f090900000709070909070000060901010906000007090909090700000f010701010f00000f010701010100000609010d0906000009090f09090900000e040404040e00000e04040405020000090503050509000001010101010f0000090f0f0909090000090b0f0d0d090000060909090906000007090907010100000609090b0d060800070909070909000006090204090600000e04040404040000090909090906000009090909060600000909090f0f090000090906060909000011110a04040400000f080402010f00000e020202020e000001010204080800000e080808080e0000040a0000000000000000000000000f00020400000000000000000e09090e0000010107090907000000000c02020c000008080e09090e00000000060d03060000040a020702020000000006090e080600010107090909000004000604040e000008000808080a0400010109070909000006040404040e000000000b151515000000000709090900000000060909060000000007090701010000000e090e0808000000050b0101000000000c0608060000020207020a04000000000909090e000000000a0a0a04000000001115150a00000000090606090000000009090e09060000000f04020f000c02040304020c0000040404040404000304020c02040300000a050000000000';
+const oledCv = document.createElement('canvas');
+function oledImage(sh){
+  oledCv.width = 128; oledCv.height = 64;
+  const x = oledCv.getContext('2d');
+  x.fillStyle = '#050607'; x.fillRect(0, 0, 128, 64);
+  if (sh){
+    const img = x.createImageData(sh.w, sh.h);
+    for (let i = 0; i < sh.buf.length; i++){
+      const on = sh.inv ? !sh.buf[i] : sh.buf[i];
+      img.data[i * 4] = on ? 120 : 5; img.data[i * 4 + 1] = on ? 214 : 6; img.data[i * 4 + 2] = on ? 255 : 7; img.data[i * 4 + 3] = 255;
+    }
+    x.putImageData(img, 0, 0);
+  }
+  return oledCv.toDataURL();
+}
 /* ---------------- Display mecánico (servos de los PCA9685) ---------------- */
 const SEGS = [[6, 0, 30, 8, 'h'], [36, 6, 8, 30, 'v'], [36, 42, 8, 30, 'v'], [6, 72, 30, 8, 'h'], [-2, 42, 8, 30, 'v'], [-2, 6, 8, 30, 'v'], [6, 36, 30, 8, 'h']];
 const mechLast = {};
@@ -4403,12 +4590,17 @@ function frame(now){
         c.rot = (c.rot + (on ? 900 : 0) * dt) % 360; s.rotor.setAttribute('transform', `rotate(${c.rot} 22 -40)`); s.water.setAttribute('opacity', on ? 1 : 0);
         txt = on ? 'bombeando agua' : m.mode ? 'detenida' : 'sin conectar'; break; }
       case 'supply12': txt = '12 V'; break;
+      case 'oled': {
+        const sh = oledShow[+c.addr || 60];
+        if (s.oimg && (oledDirty || !c._painted || c._shown !== sh)){ c._painted = true; c._shown = sh; s.oimg.setAttribute('href', oledImage(sh)); }
+        txt = `0x${(+c.addr || 60).toString(16).toUpperCase()} · ` + (!m.ok ? 'sin conectar' : sh ? 'mostrando' : 'apagada'); break; }
       case 'pca9685': { const o = pcaOut[+c.addr || 64]; const n = o ? o.filter(v => v != null).length : 0; if (s.pled) s.pled.setAttribute('fill', m.ok ? '#FF3B30' : '#4a1d1a'); txt = `0x${(+c.addr || 64).toString(16)} · ` + (!m.ok ? 'sin conectar' : !m.vp ? 'sin energía en V+' : running ? `${n} canales en uso` : 'listo'); break; }
       case 'ds1302': { const d = new Date(Date.now() + rtcOffset); txt = m.ok ? d.toLocaleTimeString('es-CO', {hour: '2-digit', minute: '2-digit', second: '2-digit'}) : 'sin conectar'; break; }
     }
     if (c.read && c.read.textContent !== txt) c.read.textContent = txt;
   }
   drawMechDisplay();
+  oledDirty = false;
   if (pendingOut){
     serialText += pendingOut; pendingOut = '';
     if (serialText.length > 40000) serialText = serialText.slice(-25000);
