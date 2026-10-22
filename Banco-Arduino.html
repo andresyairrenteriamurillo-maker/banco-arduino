@@ -277,7 +277,7 @@ select.sel{border:1px solid var(--line);background:var(--surface);border-radius:
   <header class="top">
     <div class="brand">
       <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="5" width="36" height="28" rx="4" fill="var(--pcb)"/><rect x="0" y="11" width="9" height="8" fill="var(--metal)"/><rect x="16" y="20" width="16" height="6" rx="1" fill="var(--chip)"/><rect x="12" y="7" width="22" height="4" fill="var(--hdr)"/><circle cx="13" cy="25" r="2" fill="var(--hot)"/></svg>
-      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.22-1154</span></p></div>
+      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.22-1155</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -2757,8 +2757,8 @@ void loop() {
 }
 `},
 {keys:['oled con bateria','pantalla con bateria','bateria 3.3','bateria de 3.3','pila 3.3','oled bateria','bateria oled','prender con bateria','pila de litio'], titulo:'Pantalla OLED con batería de 3.3 V',
- idea:'La pantalla OLED se alimenta con una batería de litio de 3.3 V (riel + de arriba) en vez del 5V del Arduino. El Arduino sigue conectado por USB y le manda los datos por SDA y SCL.',
- componentes:[{tipo:'battery',nombre:'Batería 3.3 V'},{tipo:'oled',nombre:'Pantalla OLED 0.96″'},{tipo:'pot',nombre:'Potenciómetro',pines:{w:'A0'}}],
+ idea:'La pantalla OLED muestra un saludo y una pelotita que rebota, y se alimenta con una batería de litio de 3.3 V (riel + de arriba) en vez del 5V del Arduino. El Arduino sigue conectado por USB y le manda los datos por SDA y SCL.',
+ componentes:[{tipo:'battery',nombre:'Batería 3.3 V'},{tipo:'oled',nombre:'Pantalla OLED 0.96″'}],
  materiales_extra:['Portapilas para la batería (por ejemplo, de 18650)'],
  notas:['La pantalla OLED funciona con 3.3 V a 5 V, por eso la batería de 3.3 V la puede alimentar.',
   'El − de la batería debe estar unido al GND del Arduino: así la pantalla y el Arduino tienen el mismo 0 V y se entienden por I2C.',
@@ -2771,42 +2771,49 @@ void loop() {
 #include <Adafruit_SSD1306.h>
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
-const int POT = A0;
+
+int x = 10;
+int y = 30;
+int dx = 3;
+int dy = 2;
 
 void setup() {
   Serial.begin(9600);
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("No encuentro la pantalla: revisa VCC (batería), GND, SDA (A4) y SCL (A5)");
+    Serial.println("No encuentro la pantalla: revisa VCC (bateria), GND, SDA (A4) y SCL (A5)");
     while (true) {
       delay(1000);
     }
   }
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
+  display.setTextSize(2);
+  display.setCursor(10, 10);
+  display.println("Hola!");
   display.setTextSize(1);
-  display.setCursor(0, 0);
-  display.println("Pantalla con bateria");
-  display.println("de 3.3 V");
+  display.setCursor(10, 40);
+  display.println("Prendo con 3.3 V");
   display.display();
   delay(2000);
 }
 
 void loop() {
-  int valor = analogRead(POT);
-  int porcentaje = map(valor, 0, 1023, 0, 100);
-
+  x = x + dx;
+  y = y + dy;
+  if (x < 4 || x > 123) {
+    dx = -dx;
+  }
+  if (y < 14 || y > 59) {
+    dy = -dy;
+  }
   display.clearDisplay();
   display.setTextSize(1);
   display.setCursor(0, 0);
-  display.println("Bateria 3.3V");
-  display.setTextSize(3);
-  display.setCursor(0, 20);
-  display.print(porcentaje);
-  display.print("%");
-  display.drawRect(0, 54, 128, 10, SSD1306_WHITE);
-  display.fillRect(2, 56, map(porcentaje, 0, 100, 0, 124), 6, SSD1306_WHITE);
+  display.println("Bateria 3.3 V");
+  display.drawRect(0, 10, 128, 54, SSD1306_WHITE);
+  display.fillCircle(x, y, 4, SSD1306_WHITE);
   display.display();
-  delay(100);
+  delay(30);
 }
 `},
 ];
