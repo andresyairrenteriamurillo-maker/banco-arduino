@@ -280,7 +280,7 @@ select.sel{border:1px solid var(--line);background:var(--surface);border-radius:
   <header class="top">
     <div class="brand">
       <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="5" width="36" height="28" rx="4" fill="var(--pcb)"/><rect x="0" y="11" width="9" height="8" fill="var(--metal)"/><rect x="16" y="20" width="16" height="6" rx="1" fill="var(--chip)"/><rect x="12" y="7" width="22" height="4" fill="var(--hdr)"/><circle cx="13" cy="25" r="2" fill="var(--hot)"/></svg>
-      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.22-1155</span></p></div>
+      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.22-1159</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -2686,88 +2686,15 @@ void loop() {
   delay(200);
 }
 `},
-{keys:['oled','pantalla oled','pantalla','mostrar en pantalla','display oled','ssd1306','0.96','096','0,96'], titulo:'Pantalla OLED 0.96″: textos y dibujos',
- idea:'La pantalla OLED muestra un saludo, un contador de segundos, el valor del potenciómetro con una barra que se llena y un círculo que se mueve. Mueve el potenciómetro y mira cómo cambia.',
- componentes:[{tipo:'oled',nombre:'Pantalla OLED 0.96″'},{tipo:'pot',nombre:'Potenciómetro',pines:{w:'A0'}}],
- materiales_extra:[],
- notas:['La pantalla OLED de 0.96″ tiene 128 × 64 puntos y usa I2C: solo 2 cables de datos. SDA va a A4 y SCL a A5 (siempre esos en el Arduino Uno).',
-  'Revisa el orden de los pines en tu pantalla: la mayoría dice GND, VCC, SCL, SDA, pero algunas traen VCC y GND al revés.',
-  'En el Arduino IDE instala las librerías «Adafruit SSD1306» y «Adafruit GFX Library» (Programa → Incluir librería → Administrar bibliotecas).',
-  'La dirección casi siempre es 0x3C. Si tu pantalla queda en negro, prueba con 0x3D.',
-  'Todo lo que dibujas se prepara en memoria: solo aparece en la pantalla cuando llamas a display.display().',
-  'Coordenadas: x va de 0 a 127 (izquierda a derecha) e y de 0 a 63 (arriba hacia abajo). Con setTextSize(2) las letras salen el doble de grandes.'],
- codigo:`// Pantalla OLED 0.96" (SSD1306): textos, números y dibujos
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-
-#define ANCHO 128
-#define ALTO 64
-Adafruit_SSD1306 display(ANCHO, ALTO, &Wire, -1);
-
-const int POT = A0;
-
-void setup() {
-  Serial.begin(9600);
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("No encuentro la pantalla OLED: revisa SDA (A4) y SCL (A5)");
-    while (true) {
-      delay(1000);
-    }
-  }
-  // pantalla de bienvenida
-  display.clearDisplay();
-  display.setTextColor(SSD1306_WHITE);
-  display.setTextSize(2);
-  display.setCursor(10, 10);
-  display.println("Hola!");
-  display.setTextSize(1);
-  display.setCursor(10, 40);
-  display.println("Banco Arduino");
-  display.display();
-  delay(2000);
-}
-
-void loop() {
-  int valor = analogRead(POT);              // 0 a 1023
-  int barra = map(valor, 0, 1023, 0, 116);  // largo de la barra
-  long segundos = millis() / 1000;
-
-  display.clearDisplay();
-
-  // título
-  display.setTextSize(1);
-  display.setCursor(0, 0);
-  display.print("Segundos: ");
-  display.println(segundos);
-
-  // valor grande
-  display.setTextSize(2);
-  display.setCursor(0, 14);
-  display.print(valor);
-
-  // barra que se llena con el potenciómetro
-  display.drawRect(4, 38, 120, 10, SSD1306_WHITE);
-  display.fillRect(6, 40, barra, 6, SSD1306_WHITE);
-
-  // círculo que se mueve con el potenciómetro
-  display.fillCircle(8 + barra, 57, 5, SSD1306_WHITE);
-
-  display.display();
-  Serial.print("Potenciómetro: ");
-  Serial.println(valor);
-  delay(100);
-}
-`},
-{keys:['oled con bateria','pantalla con bateria','bateria 3.3','bateria de 3.3','pila 3.3','oled bateria','bateria oled','prender con bateria','pila de litio'], titulo:'Pantalla OLED con batería de 3.3 V',
- idea:'La pantalla OLED muestra un saludo y una pelotita que rebota, y se alimenta con una batería de litio de 3.3 V (riel + de arriba) en vez del 5V del Arduino. El Arduino sigue conectado por USB y le manda los datos por SDA y SCL.',
+{keys:['oled','pantalla oled','pantalla','mostrar en pantalla','display oled','ssd1306','0.96','096','0,96','oled con bateria','pantalla con bateria','bateria 3.3','bateria de 3.3','pila 3.3','oled bateria','bateria oled','prender con bateria','pila de litio'], titulo:'Pantalla OLED con batería de 3.3 V',
+ idea:'La pantalla OLED muestra un saludo y una pelotita que rebota. La batería de 3.3 V le da la energía a la pantalla por VCC, y el Arduino, conectado por USB, le manda los datos por SDA y SCL.',
  componentes:[{tipo:'battery',nombre:'Batería 3.3 V'},{tipo:'oled',nombre:'Pantalla OLED 0.96″'}],
  materiales_extra:['Portapilas para la batería (por ejemplo, de 18650)'],
- notas:['La pantalla OLED funciona con 3.3 V a 5 V, por eso la batería de 3.3 V la puede alimentar.',
-  'El − de la batería debe estar unido al GND del Arduino: así la pantalla y el Arduino tienen el mismo 0 V y se entienden por I2C.',
-  'El Arduino Uno NO prende con 3.3 V: necesita el USB, 5 V en el pin 5V o de 7 a 12 V en VIN (una batería de 9 V). Prueba marcar «Probar sin USB» en la tarjeta de la batería para ver qué pasa.',
-  'Para un proyecto portátil que funcione solo con una pila de 3.7 V se usa otra placa, como un ESP32 o un Arduino Pro Mini de 3.3 V, o un módulo elevador (step-up) a 5 V.',
-  'Cuidado con las pilas de litio: nunca unas su + con su − (se calientan y pueden inflarse o quemarse), y cárgalas solo con su cargador (por ejemplo, un módulo TP4056).'],
+ notas:['Batería: el + va al riel + de arriba y el − al riel − de arriba.',
+  'Pantalla: VCC al riel + de la batería, GND al riel −, SDA al pin A4 y SCL al pin A5.',
+  'El riel − de la batería está unido al GND del Arduino: así la pantalla y el Arduino se entienden.',
+  'El Arduino se conecta por USB al computador.',
+  'Cuidado con las pilas de litio: nunca unas su + con su −, y cárgalas solo con su cargador.'],
  codigo:`// Pantalla OLED alimentada con batería de 3.3 V
 #include <Wire.h>
 #include <Adafruit_GFX.h>
