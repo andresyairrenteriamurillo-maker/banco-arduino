@@ -277,7 +277,7 @@ select.sel{border:1px solid var(--line);background:var(--surface);border-radius:
   <header class="top">
     <div class="brand">
       <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="5" width="36" height="28" rx="4" fill="var(--pcb)"/><rect x="0" y="11" width="9" height="8" fill="var(--metal)"/><rect x="16" y="20" width="16" height="6" rx="1" fill="var(--chip)"/><rect x="12" y="7" width="22" height="4" fill="var(--hdr)"/><circle cx="13" cy="25" r="2" fill="var(--hot)"/></svg>
-      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-1520</span></p></div>
+      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-1539</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -2952,7 +2952,7 @@ function guideFor(c){
     if (E.kind !== 'none'){
       let ok = false;
       if (r.to === 'gnd') ok = E.kind === 'gnd';
-      else if (r.to === '5v') ok = E.kind === '5v';
+      else if (r.to === '5v') ok = E.kind === '5v' || (c.type === 'oled' && E.kind === '3v3');
       else if (r.to === 'rail+') ok = ['tp','bp'].some(x => net(x + ':0') === net(legHole(c, l))) && !infoOf(net(legHole(c, l))).ard5;
       else ok = E.kind === 'pin' && (!r.res || E.r > 0) && (r.kind !== 'analog' || E.pin >= 14) && (r.kind !== 'sda' || E.pin === 18) && (r.kind !== 'scl' || E.pin === 19);
       if (ok && r.pd){ const pd = pullOf(net(legHole(c, l))); if (!pd || pd.dir !== 'down'){ ok = false; } }
@@ -2960,7 +2960,8 @@ function guideFor(c){
       if (!ok) now = epText(E) + (r.res && E.kind === 'pin' && !E.r ? ' (sin resistencia)' : '') + (r.pd && E.kind === 'pin' ? ' (falta 10 kΩ a GND)' : '');
     }
     const p = E.kind === 'pin' ? E.pin : sug[l.id];
-    return {leg: l.id, st, now, to: r.to, pin: p, html: `<b>${(LEGTXT[c.type] || {})[l.id] || l.n}</b> → ${targetHtml(r, p)}`};
+    const batV = c.type === 'oled' && r.to === '5v' && (E.kind === '3v3' && /batería/.test(E.name || '') || (E.kind === 'none' && comps.some(x => x.type === 'battery')));
+    return {leg: l.id, st, now, to: r.to, pin: p, html: `<b>${(LEGTXT[c.type] || {})[l.id] || l.n}</b> → ${batV ? 'riel <b>+ de la batería</b>' : targetHtml(r, p)}`};
   }).filter(Boolean);
 }
 const guideText = c => { const G = guideFor(c); return G.length ? G.map(x => x.html).join('<br>') : ''; };
@@ -5336,14 +5337,17 @@ requestAnimationFrame(frame);
 const GUIDE = (() => {
   const LS = k => { try { return localStorage.getItem('ba_guide_' + k); } catch (e) { return null; } };
   const LSset = (k, v) => { try { localStorage.setItem('ba_guide_' + k, v); } catch (e) {} };
-  const st = {on: LS('on') !== '0', voice: LS('voice') !== '0', auto: true, steps: [], i: -1, playing: false, timer: null, seq: 0, focus: null};
+  const st = {rate: +(LS('rate') || 1.2), vname: LS('vname') || '', on: LS('on') !== '0', voice: LS('voice') !== '0', auto: true, steps: [], i: -1, playing: false, timer: null, seq: 0, focus: null};
   const synth = window.speechSynthesis || null;
   let voice = null;
   function pickVoice(){
     if (!synth) return;
     const vs = synth.getVoices().filter(v => /^es/i.test(v.lang));
     const score = v => (/natural|online/i.test(v.name) ? 10 : 0) + ({'es-CO':6, 'es-MX':5, 'es-US':4, 'es-419':4, 'es-ES':3}[v.lang.replace('_', '-')] || 1) + (/sabina|salome|dalia|paloma|helena|laura|elvira/i.test(v.name) ? 1 : 0);
-    voice = vs.sort((a, b) => score(b) - score(a))[0] || null;
+    vs.sort((a, b) => score(b) - score(a));
+    voice = vs.find(v => v.name === st.vname) || vs[0] || null;
+    const sel = document.getElementById('cbVoz');
+    if (sel){ sel.innerHTML = vs.map(v => `<option value="${esc(v.name)}"${v === voice ? ' selected' : ''}>${esc(v.name.replace(/^Microsoft\s*/, '').replace(/\s*-\s*Spanish/i, ' ·').replace(/Online \(Natural\)/i, '✨'))}</option>`).join('') || '<option>Sin voces en español</option>'; }
   }
   if (synth){ pickVoice(); try { synth.onvoiceschanged = pickVoice; } catch (e) {} }
 
@@ -5352,7 +5356,7 @@ const GUIDE = (() => {
   function speakable(t){
     return t
       .replace(/(\d)[.,](\d)\s?V\b/g, '$1 coma $2 voltios')
-      .replace(/(\d+)\s?V\b/g, '$1 voltios')
+      .replace(/(\d+)\s?V\b/g, '$1 voltios').replace(/(\d)[.,](\d+)″/g, '$1 coma $2 pulgadas')
       .replace(/(\d+)\s?kΩ/g, '$1 kilo ohmios').replace(/(\d+)\s?Ω/g, '$1 ohmios')
       .replace(/(\d+)\s?mA\b/g, '$1 miliamperios')
       .replace(/\bGND\b/g, 'G N D').replace(/\bVCC\b/g, 'V C C').replace(/\bSDA\b/g, 'S D A').replace(/\bSCL\b/g, 'S C L')
@@ -5360,10 +5364,17 @@ const GUIDE = (() => {
       .replace(/\bPWM\b/g, 'P W M').replace(/\bCOM\b/g, 'común').replace(/\bNO\b/g, 'N O').replace(/\bRGB\b/g, 'R G B')
       .replace(/\bpin D(\d{1,2})\b/g, 'pin $1').replace(/\bD(\d{1,2})\b/g, 'pin $1').replace(/\bA([0-5])\b/g, 'A $1')
       .replace(/0x([0-9A-F]{2})/gi, (m, h) => 'cero equis ' + h.split('').join(' '))
-      .replace(/\briel\s*\+/g, 'riel positivo').replace(/\briel\s*[−-]/g, 'riel negativo')
-      .replace(/\s\+\s|^\+\s|\(\+\)/g, ' positivo ').replace(/\s[−]\s|^[−]\s|\(−\)/g, ' negativo ').replace(/\+\s/g, 'positivo ').replace(/−\s/g, 'negativo ')
-      .replace(/→/g, ', va a ').replace(/[«»"“”]/g, '').replace(/\s*·\s*/g, '. ').replace(/[✓✕○](?=\s)/g, '')
-      .replace(/\s+/g, ' ').trim();
+      .replace(/Pata \+ \(ánodo, la más larga\)/g, 'La pata positiva, que es la más larga,')
+      .replace(/Pata − \(cátodo, la corta, lado plano\)/g, 'La pata negativa, que es la corta,')
+      .replace(/Pata − \(común, la más larga\)/g, 'La pata negativa, que es la más larga,')
+      .replace(/pata larga \+, corta −/g, 'la pata larga es la positiva y la corta es la negativa')
+      .replace(/\b([Pp])ata \+/g, '$1ata positiva').replace(/\b([Pp])ata −/g, '$1ata negativa')
+      .replace(/\briel\s*\+/g, 'riel positivo').replace(/\briel\s*−/g, 'riel negativo')
+      .replace(/\+ \(positivo\)/g, 'positivo').replace(/− \(negativo\)/g, 'negativo')
+      .replace(/(^|[^\w+])\+(?=[^\w+]|$)/g, '$1 positivo ').replace(/(^|\D)−(?=\D|$)/g, '$1 negativo ')
+      .replace(/\s*\(\s*/g, ', ').replace(/\s*\)\s*/g, ', ')
+      .replace(/\s*→\s*/g, ', va a ').replace(/[«»"“”]/g, '').replace(/\s*·\s*/g, '. ').replace(/[✓✕○](?=\s)/g, '')
+      .replace(/\s*,\s*([,.])/g, '$1').replace(/\s+/g, ' ').trim();
   }
 
   /* --- interfaz --- */
@@ -5381,6 +5392,11 @@ const GUIDE = (() => {
         <button class="cbtn" id="cbVoice" title="Voz encendida o apagada" aria-label="Voz">🔊</button>
         <button class="cbtn" id="cbTour" title="Explicar todo el circuito paso a paso">Explícame el circuito</button>
         <button class="cbtn" id="cbSide" title="Pasar a Chispa al otro lado de la pantalla" aria-label="Cambiar de lado">⇄</button>
+        <span class="cset" id="cbSet" hidden>
+          <button class="cbtn" id="cbSlow" title="Más despacio">🐢</button><span class="cspd" id="cbSpd"></span><button class="cbtn" id="cbFast" title="Más rápido">🐇</button>
+          <select id="cbVoz" class="cvoz" title="Elegir la voz"></select>
+        </span>
+        <button class="cbtn" id="cbCfg" title="Velocidad y voz" aria-label="Velocidad y voz">⚙</button>
         <button class="cbtn x" id="cbHide" title="Esconder a Chispa" aria-label="Esconder">✕</button>
       </div>
     </div>
@@ -5430,6 +5446,12 @@ const GUIDE = (() => {
   .chispa .cbtn:hover{border-color:var(--accent)}
   .chispa .cbtn.main{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
   .chispa .cbtn.x{margin-left:auto}
+  .chispa .cset{display:flex;flex-wrap:wrap;gap:6px;align-items:center;width:100%;order:9;padding-top:4px;border-top:1px dashed var(--line)}
+  .chispa .cset[hidden]{display:none}
+  .chispa .cspd{font:700 13px var(--f-mono);min-width:38px;text-align:center}
+  .chispa .cvoz{flex:1;min-width:120px;height:32px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);font:13px var(--f-body)}
+  .chispa.hop .bot{animation:chop .45s ease-out}
+  @keyframes chop{40%{transform:translateY(-14px) rotate(-6deg)}}
   .chispa .cbtn[hidden]{display:none}
   .chispa.min .cb{display:none}
   .chispa.min .bot svg{width:58px;height:64px}
@@ -5452,6 +5474,7 @@ const GUIDE = (() => {
     hb.setAttribute('aria-pressed', st.on);
     box.classList.toggle('off', !st.on);
     $c('#cbVoice').textContent = st.voice ? '🔊' : '🔇';
+    $c('#cbSpd').textContent = '×' + st.rate.toFixed(2).replace(/0$/, '');
     $c('#cbVoice').title = st.voice ? 'Apagar la voz' : 'Encender la voz';
     const tour = st.steps.length > 0;
     ['#cbPrev', '#cbNext', '#cbPlay'].forEach(s => $c(s).hidden = !tour);
@@ -5468,15 +5491,15 @@ const GUIDE = (() => {
     const seq = st.seq;
     const plain = speakable(strip(html));
     const fin = () => { if (seq !== st.seq) return; box.classList.remove('talk'); done && done(); };
-    const readMs = Math.min(16000, 1600 + plain.split(' ').length * 330);
+    const readMs = Math.min(16000, 1400 + plain.split(' ').length * 330 / st.rate);
     if (!st.voice || !synth || !voice){
       box.classList.add('talk'); setTimeout(() => { if (seq === st.seq) box.classList.remove('talk'); }, Math.min(2500, readMs));
       st.timer = setTimeout(fin, readMs); return;
     }
     // frases cortas: algunos navegadores cortan las frases muy largas
-    const parts = plain.match(/[^.!?;:]+[.!?;:]*/g) || [plain];
+    const parts = plain.match(/[^.!?]+[.!?]*/g) || [plain];
     const chunks = []; let cur = '';
-    parts.forEach(p => { if ((cur + p).length > 180 && cur){ chunks.push(cur); cur = p; } else cur += p; }); if (cur.trim()) chunks.push(cur);
+    parts.forEach(p => { if ((cur + p).length > 320 && cur){ chunks.push(cur); cur = p; } else cur += p; }); if (cur.trim()) chunks.push(cur);
     box.classList.add('talk');
     let k = 0;
     const guard = () => { clearTimeout(st.timer); st.timer = setTimeout(fin, readMs * 2 + 4000); };
@@ -5484,11 +5507,43 @@ const GUIDE = (() => {
       if (seq !== st.seq) return;
       if (k >= chunks.length){ fin(); return; }
       const u = new SpeechSynthesisUtterance(chunks[k++].trim());
-      u.voice = voice; u.lang = voice.lang; u.rate = 0.95; u.pitch = 1.15;
+      u.voice = voice; u.lang = voice.lang; u.rate = st.rate; u.pitch = 1.25;
       u.onend = next; u.onerror = next;
       try { synth.speak(u); } catch (e) { fin(); }
     };
     guard(); next();
+  }
+
+  const KID = {
+    led:'Es una lucecita. La pata larga es la positiva y la corta es la negativa. ¡Al revés no prende!',
+    rgb:'Es una luz que puede tener muchos colores: mezcla rojo, verde y azul.',
+    button:'Es un pulsador: cuando lo aprietas, une sus dos patas y deja pasar la corriente.',
+    switch:'Es un interruptor: lo dejas prendido o apagado.',
+    pot:'Es una perilla que gira. El Arduino sabe cuánto la giraste, de 0 a 1023.',
+    ldr:'Es un sensor de luz: siente si hay luz o está oscuro.',
+    lm35:'Es un sensor de temperatura: le dice al Arduino si hace frío o calor.',
+    pir:'Es un sensor de movimiento: detecta cuando alguien pasa cerca.',
+    sonar:'Es el sensor de distancia. Funciona como un murciélago: manda un sonido y escucha el eco.',
+    buzzer:'Es un zumbador: hace pitidos y hasta melodías.',
+    servo:'Es un servomotor: un motorcito que gira al ángulo exacto que le pidas, de 0 a 180 grados.',
+    motor:'Es un motor: da vueltas y vueltas, como las ruedas de un carrito.',
+    relay:'Es un relé: un interruptor que el Arduino prende solo, para cosas de más energía como una bomba.',
+    pump12:'Es una bomba de agua de 12 voltios.', supply12:'Es la fuente de 12 voltios: da la energía para la bomba.',
+    supply:'Es una fuente de energía de 5 voltios para los motores, para que el Arduino no se canse.',
+    pca9685:'Es el controlador de servos: maneja hasta 16 servos con solo dos cables.',
+    ds1302:'Es el reloj: guarda la hora aunque apagues el Arduino.',
+    oled:'Es una pantallita donde el Arduino escribe letras y hace dibujos.',
+    battery:'Es una pila de litio. Tiene un lado positivo y un lado negativo: ¡nunca los juntes!',
+  };
+  const CHEER = ['¡Ahora mira esto!', '¡Sigamos!', '¡Vamos con otro!', '¡Súper! El siguiente.', '¡Mira cuál brilla!', '¡Muy bien, seguimos!'];
+  let actx = null;
+  function blip(){
+    if (!st.voice) return;
+    try {
+      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      [880, 1320].forEach((f, k) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, actx.currentTime + k * .09); g.gain.exponentialRampToValueAtTime(0.12, actx.currentTime + k * .09 + .02); g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + k * .09 + .12); o.connect(g).connect(actx.destination); o.start(actx.currentTime + k * .09); o.stop(actx.currentTime + k * .09 + .14); });
+    } catch (e) {}
+    box.classList.remove('hop'); void box.offsetWidth; box.classList.add('hop');
   }
 
   /* --- resaltar --- */
@@ -5547,7 +5602,8 @@ const GUIDE = (() => {
       const lines = G.map(x => x.st === 'bad' ? `<b>¡Ojo!</b> ${x.html} (ahora va a ${esc(x.now || 'otro lugar')}).` : x.html + '.');
       const own = issues.filter(i => i.cid === c.id && (i.lvl === 'err' || i.lvl === 'warn'));
       const nm = T.name + (c.type === 'led' && c.color ? ' ' + c.color : '');
-      S.push({t: nm, c, h:`Este es: <b>${esc(nm)}</b>. ${esc(T.desc)}.<br>${lines.join('<br>')}${own.length ? `<br><b>Revisa:</b> ${esc(own[0].msg)}.` : ''}`});
+      const ch = S.length > 1 ? CHEER[S.length % CHEER.length] + ' ' : '';
+      S.push({t: nm, c, h:`${ch}Aquí está: <b>${esc(nm)}</b>. ${esc(KID[c.type] || T.desc + '.')}<br>${lines.join('<br>')}${own.length ? `<br><b>Revisa:</b> ${esc(own[0].msg)}.` : ''}`});
     }
     const nErr = issues.filter(i => i.lvl === 'err').length, nWarn = issues.filter(i => i.lvl === 'warn').length;
     if (nErr || nWarn) S.push({t:'Antes de probar', el: $('#review'), h:`Hay <b>${nErr} error${nErr === 1 ? '' : 'es'}</b> y <b>${nWarn} aviso${nWarn === 1 ? '' : 's'}</b>. Míralos en <b>Revisión del circuito</b>: cada uno dice qué está mal y por qué. Corrígelos y luego pulsa <b>Ejecutar</b>.`});
@@ -5560,7 +5616,7 @@ const GUIDE = (() => {
     box.classList.remove('min');
     tEl.innerHTML = `<span class="ttl">Paso ${st.i + 1} de ${st.steps.length} · ${esc(s.t)}</span>${s.h}`;
     focus(s.c || s.el || null);
-    syncUI();
+    syncUI(); blip();
     say(s.h, () => { if (st.playing && st.auto && st.i < st.steps.length - 1) st.timer = setTimeout(() => show(st.i + 1), 900); else if (st.i >= st.steps.length - 1){ st.playing = false; syncUI(); } });
   }
   function startTour(){
@@ -5578,6 +5634,11 @@ const GUIDE = (() => {
   };
   $c('#cbVoice').onclick = () => { st.voice = !st.voice; LSset('voice', st.voice ? '1' : '0'); if (!st.voice) stopVoice(); syncUI(); };
   $c('#cbTour').onclick = startTour;
+  $c('#cbCfg').onclick = () => { const e = $c('#cbSet'); e.hidden = !e.hidden; if (!e.hidden) pickVoice(); };
+  const setRate = r => { st.rate = Math.round(Math.max(0.8, Math.min(1.7, r)) * 20) / 20; LSset('rate', st.rate); syncUI(); say('¡Así hablo ahora! ¿Te gusta?'); };
+  $c('#cbSlow').onclick = () => setRate(st.rate - 0.1);
+  $c('#cbFast').onclick = () => setRate(st.rate + 0.1);
+  $c('#cbVoz').onchange = e => { st.vname = e.target.value; LSset('vname', st.vname); pickVoice(); say('¡Hola! Ahora tengo esta voz.'); };
   const side = r => { box.classList.toggle('right', r); LSset('side', r ? 'r' : 'l'); };
   side(LS('side') === 'r');
   $c('#cbSide').onclick = () => side(!box.classList.contains('right'));
