@@ -277,7 +277,7 @@ select.sel{border:1px solid var(--line);background:var(--surface);border-radius:
   <header class="top">
     <div class="brand">
       <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="5" width="36" height="28" rx="4" fill="var(--pcb)"/><rect x="0" y="11" width="9" height="8" fill="var(--metal)"/><rect x="16" y="20" width="16" height="6" rx="1" fill="var(--chip)"/><rect x="12" y="7" width="22" height="4" fill="var(--hdr)"/><circle cx="13" cy="25" r="2" fill="var(--hot)"/></svg>
-      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-1539</span></p></div>
+      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-1652</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -5650,7 +5650,7 @@ const GUIDE = (() => {
   tEl.innerHTML = '¡Hola! Soy <b>Chispa</b> 🤖. Te explico en voz alta cómo se conecta cada cosa. Arma un proyecto o toca <b>Explícame el circuito</b>.';
   syncUI();
 
-  return {tell, startTour, endTour, stopVoice, st, speakable};
+  return {tell, startTour, endTour, stopVoice, st, speakable, KID};
 })();
 
 window.__guide = GUIDE;
@@ -5675,6 +5675,447 @@ window.__guide = GUIDE;
     if (s === lastS) return; lastS = s;
     if (s === 'run'){ GUIDE.endTour(); GUIDE.tell('¡Funcionando!', 'El Arduino está corriendo el programa. Mira la protoboard: los componentes hacen lo que dice el código. Para pararlo, pulsa <b>Detener</b>.'); }
   };
+}
+
+/* ================= Juegos: misiones con estrellas y concurso relámpago ================= */
+const GAMES = (() => {
+  const LS = k => { try { return JSON.parse(localStorage.getItem('ba_game_' + k)); } catch (e) { return null; } };
+  const LSset = (k, v) => { try { localStorage.setItem('ba_game_' + k, JSON.stringify(v)); } catch (e) {} };
+  const prog = Object.assign({stars: {}, best: 0, all: false}, LS('prog') || {});
+  const saveProg = () => LSset('prog', prog);
+  const KID = GUIDE.KID;
+
+  /* ---------- Misiones ---------- */
+  const M = [
+    {id:'m1', ico:'💡', t:'¡Prende la luz!', lvl:1,
+     story:'¡Hola, ingeniero! Tu primera misión: haz que el <b>LED rojo</b> se prenda. Conéctalo al <b>pin 13</b> pasando por la resistencia, y su pata corta a <b>GND</b>.',
+     parts:[{type:'led', color:'rojo', fixed:{a:13}}, {type:'resistor', ohm:'220 Ω'}],
+     need:[{type:'led', color:'rojo', pins:{a:13}}],
+     hint:'Empieza llevando el <b>GND</b> del Arduino al riel − (línea azul). La pata corta del LED va a ese riel. La pata larga va a una pata de la resistencia, y la otra pata de la resistencia va con un cable al <b>pin 13</b>.',
+     code:`// Misión 1: prende la luz\nvoid setup() {\n  pinMode(13, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(13, HIGH);\n}\n`},
+    {id:'m2', ico:'✨', t:'Luz que parpadea', lvl:1,
+     story:'Ahora el <b>LED verde</b> va a parpadear como una estrella. Conéctalo al <b>pin 8</b> con su resistencia.',
+     parts:[{type:'led', color:'verde', fixed:{a:8}}, {type:'resistor', ohm:'220 Ω'}],
+     need:[{type:'led', color:'verde', pins:{a:8}}],
+     hint:'Es igual que la misión 1, pero el cable va al <b>pin 8</b>. Recuerda: la resistencia va en serie, entre el LED y el pin.',
+     code:`// Misión 2: luz que parpadea\nvoid setup() {\n  pinMode(8, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(8, HIGH);\n  delay(500);\n  digitalWrite(8, LOW);\n  delay(500);\n}\n`},
+    {id:'m3', ico:'🚓', t:'Luces de policía', lvl:1,
+     story:'¡Sirena! Conecta el <b>LED rojo al pin 12</b> y el <b>LED azul al pin 11</b>, cada uno con su resistencia. Se van a turnar.',
+     parts:[{type:'led', color:'rojo', fixed:{a:12}}, {type:'led', color:'azul', fixed:{a:11}}, {type:'resistor', ohm:'220 Ω'}, {type:'resistor', ohm:'220 Ω'}],
+     need:[{type:'led', color:'rojo', pins:{a:12}}, {type:'led', color:'azul', pins:{a:11}}],
+     hint:'Cada LED necesita su propia resistencia. Las dos patas cortas pueden ir al mismo riel − (GND).',
+     code:`// Misión 3: luces de policía\nvoid setup() {\n  pinMode(12, OUTPUT);\n  pinMode(11, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(12, HIGH);\n  digitalWrite(11, LOW);\n  delay(300);\n  digitalWrite(12, LOW);\n  digitalWrite(11, HIGH);\n  delay(300);\n}\n`},
+    {id:'m4', ico:'🔘', t:'El botón mágico', lvl:2,
+     story:'Haz que la luz se prenda <b>solo cuando aprietes el botón</b>. El botón va al <b>pin 2</b> y a GND. El LED amarillo va al <b>pin 13</b> con su resistencia.',
+     parts:[{type:'button', fixed:{x:2}}, {type:'led', color:'amarillo', fixed:{a:13}}, {type:'resistor', ohm:'220 Ω'}],
+     need:[{type:'button', pins:{x:2}}, {type:'led', color:'amarillo', pins:{a:13}}],
+     hint:'Una pata del botón va al <b>pin 2</b> y la otra al riel − (GND). El código usa INPUT_PULLUP, por eso no hace falta otra resistencia para el botón.',
+     code:`// Misión 4: el botón mágico\nvoid setup() {\n  pinMode(2, INPUT_PULLUP);\n  pinMode(13, OUTPUT);\n}\n\nvoid loop() {\n  if (digitalRead(2) == LOW) {\n    digitalWrite(13, HIGH);\n  } else {\n    digitalWrite(13, LOW);\n  }\n}\n`},
+    {id:'m5', ico:'🚦', t:'Semáforo', lvl:2,
+     story:'¡Arma un semáforo! <b>Rojo al pin 13</b>, <b>amarillo al pin 12</b> y <b>verde al pin 11</b>. Cada uno con su resistencia.',
+     parts:[{type:'led', color:'rojo', fixed:{a:13}}, {type:'led', color:'amarillo', fixed:{a:12}}, {type:'led', color:'verde', fixed:{a:11}}, {type:'resistor', ohm:'220 Ω'}, {type:'resistor', ohm:'220 Ω'}, {type:'resistor', ohm:'220 Ω'}],
+     need:[{type:'led', color:'rojo', pins:{a:13}}, {type:'led', color:'amarillo', pins:{a:12}}, {type:'led', color:'verde', pins:{a:11}}],
+     hint:'Hazlo de a uno: primero el rojo completo, luego el amarillo y al final el verde. Todas las patas cortas van al riel −.',
+     code:`// Misión 5: semáforo\nvoid setup() {\n  pinMode(13, OUTPUT);\n  pinMode(12, OUTPUT);\n  pinMode(11, OUTPUT);\n}\n\nvoid loop() {\n  digitalWrite(11, HIGH);\n  delay(3000);\n  digitalWrite(11, LOW);\n  digitalWrite(12, HIGH);\n  delay(1000);\n  digitalWrite(12, LOW);\n  digitalWrite(13, HIGH);\n  delay(3000);\n  digitalWrite(13, LOW);\n}\n`},
+    {id:'m6', ico:'🎵', t:'Música con el zumbador', lvl:2,
+     story:'El <b>zumbador</b> puede tocar notas. Conecta su pata + al <b>pin 8</b> y su pata − a GND. ¡Escucha la melodía!',
+     parts:[{type:'buzzer', fixed:{p:8}}],
+     need:[{type:'buzzer', pins:{p:8}}],
+     hint:'La pata + del zumbador (marcada con +) va al <b>pin 8</b>. La otra pata va al riel − (GND). Activa el botón 🔊 Sonido para oírlo.',
+     code:`// Misión 6: música\nint notas[] = {262, 294, 330, 349, 392, 440, 494, 523};\n\nvoid setup() {\n}\n\nvoid loop() {\n  for (int i = 0; i < 8; i++) {\n    tone(8, notas[i], 200);\n    delay(250);\n  }\n  delay(1000);\n}\n`},
+    {id:'m7', ico:'🎚️', t:'Perilla de brillo', lvl:3,
+     story:'Con la <b>perilla</b> (potenciómetro) vas a controlar qué tan fuerte brilla el LED. Perilla: extremos a <b>5V</b> y <b>GND</b>, centro a <b>A0</b>. LED blanco al <b>pin 9</b> con resistencia.',
+     parts:[{type:'pot', fixed:{w:14}}, {type:'led', color:'blanco', fixed:{a:9}}, {type:'resistor', ohm:'220 Ω'}],
+     need:[{type:'pot', pins:{w:14}}, {type:'led', color:'blanco', pins:{a:9}}],
+     hint:'Necesitas los dos rieles: <b>5V</b> al riel + y <b>GND</b> al riel −. Un extremo de la perilla al riel +, el otro al riel −, y la pata del centro a <b>A0</b>. El pin 9 tiene ~, por eso puede dar brillo a medias.',
+     code:`// Misión 7: perilla de brillo\nvoid setup() {\n  pinMode(9, OUTPUT);\n}\n\nvoid loop() {\n  int valor = analogRead(A0);\n  int brillo = map(valor, 0, 1023, 0, 255);\n  analogWrite(9, brillo);\n}\n`},
+    {id:'m8', ico:'🌙', t:'Lámpara de noche', lvl:3,
+     story:'Haz una lámpara que se prende sola cuando oscurece. El <b>sensor de luz</b> va a <b>5V</b> y a <b>A0</b>, con la resistencia de <b>10 kΩ</b> de A0 a GND. El LED va al <b>pin 13</b>.',
+     parts:[{type:'ldr', fixed:{y:14}}, {type:'resistor', ohm:'10 kΩ'}, {type:'led', color:'amarillo', fixed:{a:13}}, {type:'resistor', ohm:'220 Ω'}],
+     need:[{type:'ldr', pins:{y:14}}, {type:'led', color:'amarillo', pins:{a:13}}],
+     hint:'Una pata del sensor al riel + (5V). La otra pata va a <b>A0</b>, y en esa misma columna pones la resistencia de <b>10 kΩ</b> hacia el riel − (GND).',
+     code:`// Misión 8: lámpara de noche\nvoid setup() {\n  pinMode(13, OUTPUT);\n}\n\nvoid loop() {\n  int luz = analogRead(A0);\n  if (luz < 400) {\n    digitalWrite(13, HIGH);\n  } else {\n    digitalWrite(13, LOW);\n  }\n}\n`},
+    {id:'m9', ico:'🦾', t:'Brazo robot', lvl:3,
+     story:'Mueve un <b>servo</b> con la perilla, como el brazo de un robot. Servo: café a <b>GND</b>, rojo a <b>5V</b>, naranja al <b>pin 9</b>. Perilla al centro en <b>A0</b>.',
+     parts:[{type:'servo', fixed:{s:9}}, {type:'pot', fixed:{w:14}}],
+     need:[{type:'servo', pins:{s:9}}, {type:'pot', pins:{w:14}}],
+     hint:'El servo tiene 3 cables: <b>café a GND</b>, <b>rojo a 5V</b> y <b>naranja (señal) al pin 9</b>. La perilla va como en la misión 7.',
+     code:`// Misión 9: brazo robot\n#include <Servo.h>\nServo brazo;\n\nvoid setup() {\n  brazo.attach(9);\n}\n\nvoid loop() {\n  int valor = analogRead(A0);\n  int angulo = map(valor, 0, 1023, 0, 180);\n  brazo.write(angulo);\n  delay(20);\n}\n`},
+    {id:'m10', ico:'🦇', t:'Sensor murciélago', lvl:4,
+     story:'El <b>sensor de distancia</b> pita cuando algo se acerca. Sensor: VCC a 5V, <b>TRIG al pin 7</b>, <b>ECHO al pin 6</b>, GND a GND. Zumbador al <b>pin 8</b>.',
+     parts:[{type:'sonar', fixed:{t:7, e:6}}, {type:'buzzer', fixed:{p:8}}],
+     need:[{type:'sonar', pins:{t:7, e:6}}, {type:'buzzer', pins:{p:8}}],
+     hint:'El sensor tiene 4 patas: <b>VCC</b> al riel +, <b>TRIG</b> al pin 7, <b>ECHO</b> al pin 6 y <b>GND</b> al riel −. Mueve la barra de distancia de su tarjeta para acercar la mano.',
+     code:`// Misión 10: sensor murciélago\nvoid setup() {\n  pinMode(7, OUTPUT);\n  pinMode(6, INPUT);\n}\n\nvoid loop() {\n  digitalWrite(7, LOW);\n  delayMicroseconds(2);\n  digitalWrite(7, HIGH);\n  delayMicroseconds(10);\n  digitalWrite(7, LOW);\n  long tiempo = pulseIn(6, HIGH);\n  long cm = tiempo / 58;\n  if (cm < 20) {\n    tone(8, 1000, 100);\n  }\n  delay(200);\n}\n`},
+    {id:'m11', ico:'🚨', t:'Alarma de movimiento', lvl:4,
+     story:'Cuida tu cuarto con una alarma. Sensor de movimiento: VCC a 5V, <b>OUT al pin 2</b>, GND a GND. <b>LED rojo al pin 13</b> y <b>zumbador al pin 8</b>.',
+     parts:[{type:'pir', fixed:{o:2}}, {type:'led', color:'rojo', fixed:{a:13}}, {type:'resistor', ohm:'220 Ω'}, {type:'buzzer', fixed:{p:8}}],
+     need:[{type:'pir', pins:{o:2}}, {type:'led', color:'rojo', pins:{a:13}}, {type:'buzzer', pins:{p:8}}],
+     hint:'Primero los rieles: 5V al riel + y GND al riel −. El sensor de movimiento toma energía de ahí, y su OUT va al pin 2. Para probar, haz doble clic en el sensor.',
+     code:`// Misión 11: alarma de movimiento\nvoid setup() {\n  pinMode(2, INPUT);\n  pinMode(13, OUTPUT);\n}\n\nvoid loop() {\n  if (digitalRead(2) == HIGH) {\n    digitalWrite(13, HIGH);\n    tone(8, 880, 150);\n    delay(200);\n    digitalWrite(13, LOW);\n    delay(200);\n  } else {\n    digitalWrite(13, LOW);\n  }\n}\n`},
+    {id:'m12', ico:'🌈', t:'Arcoíris RGB', lvl:4,
+     story:'Un solo LED que hace todos los colores. <b>R al pin 9</b>, <b>G al pin 10</b>, <b>B al pin 11</b>, cada uno con resistencia, y la pata larga − a GND.',
+     parts:[{type:'rgb', fixed:{r:9, g:10, b:11}}, {type:'resistor', ohm:'220 Ω'}, {type:'resistor', ohm:'220 Ω'}, {type:'resistor', ohm:'220 Ω'}],
+     need:[{type:'rgb', pins:{r:9, g:10, b:11}}],
+     hint:'El LED RGB son tres luces en una. Cada color (R, G y B) necesita su resistencia hacia su pin. La pata más larga es la común y va al riel −.',
+     code:`// Misión 12: arcoíris RGB\nvoid color(int r, int g, int b) {\n  analogWrite(9, r);\n  analogWrite(10, g);\n  analogWrite(11, b);\n}\n\nvoid setup() {\n}\n\nvoid loop() {\n  color(255, 0, 0);\n  delay(700);\n  color(0, 255, 0);\n  delay(700);\n  color(0, 0, 255);\n  delay(700);\n  color(255, 255, 0);\n  delay(700);\n  color(255, 0, 255);\n  delay(700);\n}\n`},
+  ];
+  const LVL = {1:'Nivel 1 · Luces', 2:'Nivel 2 · Botones y sonido', 3:'Nivel 3 · Sensores', 4:'Nivel 4 · Inventos'};
+  const unlocked = k => prog.all || k === 0 || (prog.stars[M[k - 1].id] || 0) > 0;
+  let cur = null;   // misión activa {m, fails, hint}
+
+  function reqStatus(q){
+    const cands = comps.filter(c => c.type === q.type && (!q.color || c.color === q.color));
+    let best = null;
+    for (const c of cands){
+      const G = guideFor(c);
+      const rows = G.map(x => {
+        const want = q.pins && q.pins[x.leg];
+        const ok = x.st === 'ok' && (want == null || x.pin === want);
+        return {ok, html: x.html.replace(/un pin libre/, want != null ? `<b>${pinLabel(want)}</b>` : 'un pin libre')};
+      });
+      const n = rows.filter(r => r.ok).length;
+      if (!best || n > best.n) best = {c, rows, n, done: n === rows.length && rows.length > 0};
+    }
+    return best || {c: null, rows: [], n: 0, done: false};
+  }
+  function missionState(){
+    const reqs = cur.m.need.map(q => ({q, ...reqStatus(q)}));
+    const errs = issues.filter(i => i.lvl === 'err');
+    return {reqs, errs, done: reqs.every(r => r.done) && !errs.length};
+  }
+  const nameOf = q => TYPES[q.type].name + (q.color ? ' ' + q.color : '');
+
+  /* --- barra de la misión --- */
+  const bar = document.createElement('div');
+  bar.className = 'gbar'; bar.hidden = true; bar.setAttribute('role', 'region'); bar.setAttribute('aria-label', 'Misión');
+  document.body.appendChild(bar);
+  function renderBar(){
+    document.body.classList.toggle('inmission', !!cur);
+    if (!cur){ bar.hidden = true; return; }
+    const S = missionState();
+    bar.hidden = false;
+    bar.innerHTML = `<div class="gbh"><span class="gico">${cur.m.ico}</span><div><small>Misión ${M.indexOf(cur.m) + 1} de ${M.length}</small><b>${cur.m.t}</b></div><button class="gx" id="gbMin" title="Achicar" aria-label="Achicar">▾</button></div>
+      <div class="gbb"><p class="gst">${cur.m.story}</p>
+      <ul class="gck">${S.reqs.map(r => `<li class="${r.done ? 'ok' : ''}"><span class="gi">${r.done ? '✓' : '○'}</span><span><b>${esc(nameOf(r.q))}</b><ul>${r.rows.map(x => `<li class="${x.ok ? 'ok' : ''}">${x.ok ? '✓' : '○'} ${x.html}</li>`).join('')}</ul></span></li>`).join('')}
+      ${S.errs.length ? `<li class="bad"><span class="gi">✕</span><span>Hay ${S.errs.length} error${S.errs.length > 1 ? 'es' : ''} en el circuito: ${esc(S.errs[0].msg)}</span></li>` : ''}</ul>
+      ${cur.hint ? `<div class="ghint">💡 ${cur.m.hint}</div>` : ''}
+      <div class="gacts"><button class="btn primary" id="gbCheck">✔ Comprobar</button><button class="btn" id="gbHint">💡 Pista</button><button class="btn" id="gbMap">🗺️ Misiones</button><button class="btn" id="gbExit">Salir</button></div></div>`;
+    bar.classList.toggle('min', !!cur.min);
+    $('#gbMin', bar).onclick = () => { cur.min = !cur.min; renderBar(); };
+    $('#gbCheck', bar).onclick = check;
+    $('#gbHint', bar).onclick = () => { cur.hint = true; renderBar(); GUIDE.tell('Pista', cur.m.hint); };
+    $('#gbMap', bar).onclick = () => openGames('mis');
+    $('#gbExit', bar).onclick = () => { cur = null; renderBar(); GUIDE.tell('', '¡Vuelve cuando quieras! Tus estrellas quedan guardadas.'); };
+  }
+  function startMission(k){
+    const m = M[k];
+    stop(); comps.forEach(stopBuzz);
+    comps = []; wires = []; nextId = 1; nextW = 1; selected = null; selWire = null;
+    // acomodo ordenado: componentes abajo (filas f–j) y resistencias arriba (filas a–e), con espacio para los cables
+    let xb = 5, xt = 3;
+    for (const p of m.parts){
+      const {type, fixed, ...props} = p, T = TYPES[type];
+      const top = type === 'resistor';
+      const x0 = top ? xt : xb, bx = x0 - T.fp[0], by = top ? 1 : 6;
+      const c = addComp(type, bx + T.fp[1] < NCOL - 1 ? {...props, bx, by} : props);
+      if (top) xt += 7; else xb += (T.fp[1] - T.fp[0]) + 5;
+      if (c && fixed) c.fixed = fixed;
+    }
+    code.value = m.code; try { lastLoaded = m.code; } catch (e) {}
+    diags = []; badLine = 0; renderDiag();
+    try { $('#plan').hidden = true; } catch (e) {}
+    pop.hidden = true;
+    cur = {m, fails: 0, hint: false, min: false};
+    closeGames();
+    renderParts(); renderCards(); drawWires(); review(false); prevKeys = new Set(issues.map(i => i.lvl + '|' + i.cid + '|' + i.msg));
+    renderGutter(); save();
+    renderBar();
+    GUIDE.endTour();
+    GUIDE.tell(`Misión ${k + 1}: ${m.t}`, m.story + ' Los componentes ya están en la protoboard. ¡Tú pones los cables! Cuando termines, toca <b>Comprobar</b>.');
+    try { $('#scene').scrollIntoView({block:'start', behavior:'smooth'}); } catch (e) {}
+  }
+  function check(){
+    if (!cur) return;
+    const S = missionState();
+    if (!S.done){
+      cur.fails++;
+      let msg;
+      if (S.errs.length) msg = `Primero corrige esto: <b>${S.errs[0].msg}</b>. ${S.errs[0].why}`;
+      else {
+        const r = S.reqs.find(x => !x.done), row = r && r.rows.find(x => !x.ok);
+        msg = row ? `Casi. Revisa <b>${esc(nameOf(r.q))}</b>: ${row.html}.` : 'Todavía falta algo. Mira la lista de la misión.';
+      }
+      if (cur.fails >= 2 && !cur.hint) msg += ' Si quieres, toca <b>💡 Pista</b>.';
+      renderBar();
+      GUIDE.tell('¡Todavía no!', msg);
+      if (S.reqs.find(x => !x.done)?.c) select(S.reqs.find(x => !x.done).c, true);
+      return;
+    }
+    const stars = cur.fails === 0 && !cur.hint ? 3 : cur.fails <= 2 ? 2 : 1;
+    const k = M.indexOf(cur.m);
+    prog.stars[cur.m.id] = Math.max(prog.stars[cur.m.id] || 0, stars); saveProg();
+    celebrate();
+    const next = M[k + 1];
+    bar.innerHTML = `<div class="gwin"><button class="gx" id="gwX" aria-label="Cerrar" style="float:right">✕</button><div class="gstars">${[1, 2, 3].map(i => `<span class="${i <= stars ? 'on' : ''}">★</span>`).join('')}</div>
+      <h3>¡Misión cumplida!</h3><p>${cur.m.ico} ${cur.m.t}</p>
+      <p class="gsm">${stars === 3 ? '¡Perfecto, a la primera!' : stars === 2 ? '¡Muy bien! Para 3 estrellas, hazlo sin pistas y sin fallar.' : '¡Lo lograste! Inténtalo otra vez para ganar más estrellas.'}</p>
+      <div class="gacts"><button class="btn primary" id="gwRun">▶ Ver cómo funciona</button>${next ? `<button class="btn" id="gwNext">Siguiente misión ${next.ico}</button>` : ''}<button class="btn" id="gwMap">🗺️ Misiones</button></div></div>`;
+    bar.classList.remove('min');
+    $('#gwX', bar).onclick = () => { bar.hidden = true; };
+    $('#gwRun', bar).onclick = () => { if (!running) start(); };
+    if (next) $('#gwNext', bar).onclick = () => startMission(k + 1);
+    $('#gwMap', bar).onclick = () => openGames('mis');
+    const doneM = cur.m; cur = null; document.body.classList.remove('inmission');
+    GUIDE.tell('¡Misión cumplida!', `¡Ganaste ${stars} estrella${stars > 1 ? 's' : ''}! ${stars === 3 ? '¡Perfecto!' : ''} Toca <b>Ver cómo funciona</b> para probar tu circuito.${next ? ` Tu próxima misión es: ${next.t}.` : ' ¡Terminaste todas las misiones, eres un gran ingeniero!'}`);
+    bar.dataset.done = doneM.id;
+  }
+
+  function celebrate(){
+    const layer = document.createElement('div'); layer.className = 'gconf'; layer.setAttribute('aria-hidden', 'true');
+    const cols = ['#FFB020', '#00838B', '#E24A3B', '#3B82F6', '#23864F', '#C33DD8'];
+    for (let i = 0; i < 70; i++){
+      const s = document.createElement('i');
+      s.style.left = Math.random() * 100 + 'vw'; s.style.background = cols[i % cols.length];
+      s.style.animationDelay = Math.random() * .6 + 's'; s.style.animationDuration = 1.6 + Math.random() * 1.4 + 's';
+      s.style.transform = `rotate(${Math.random() * 360}deg)`;
+      layer.appendChild(s);
+    }
+    document.body.appendChild(layer); setTimeout(() => layer.remove(), 3600);
+  }
+
+  /* ---------- Concurso relámpago ---------- */
+  const RIDDLE = {
+    led:'Soy una lucecita. Tengo una pata larga y una pata corta.',
+    rgb:'Soy una sola luz, pero puedo ser roja, verde, azul y muchos colores más.',
+    button:'Cuando me aprietas, uno mis dos patas y dejo pasar la corriente.',
+    pot:'Soy una perilla que gira. El Arduino sabe cuánto me giraste.',
+    ldr:'Siento si hay luz o si está oscuro.',
+    lm35:'Le digo al Arduino si hace frío o calor.',
+    pir:'Me doy cuenta cuando alguien pasa cerca de mí.',
+    sonar:'Funciono como un murciélago: mando un sonido y escucho el eco para saber la distancia.',
+    buzzer:'Hago pitidos y puedo tocar melodías.',
+    servo:'Soy un motorcito que gira al ángulo exacto que me pidas, de 0 a 180 grados.',
+    motor:'Doy vueltas y vueltas, como las ruedas de un carrito.',
+    relay:'Soy un interruptor que el Arduino prende solo, para cosas de mucha energía.',
+    oled:'Soy una pantallita donde el Arduino escribe letras y hace dibujos.',
+    battery:'Guardo energía. Tengo un lado positivo y uno negativo, ¡nunca los juntes!',
+  };
+  const QTYPES = ['led','button','pot','ldr','lm35','pir','sonar','buzzer','servo','oled','motor','battery','rgb','relay'];
+  function legAnswer(t, r){
+    if (r.to === 'gnd') return 'GND (riel −)';
+    if (r.to === '5v') return t === 'oled' ? '5V o 3.3 V (riel +)' : '5V (riel +)';
+    if (r.to === 'rail+') return 'Riel + aparte (batería o fuente)';
+    if (r.kind === 'sda') return 'A4 (SDA)';
+    if (r.kind === 'scl') return 'A5 (SCL)';
+    if (r.kind === 'analog') return 'Pin analógico (A0 a A5)';
+    if (r.res) return 'Resistencia y luego un pin';
+    return 'Un pin digital (D2 a D13)';
+  }
+  const ANS = ['GND (riel −)', '5V (riel +)', 'Pin analógico (A0 a A5)', 'Resistencia y luego un pin', 'Un pin digital (D2 a D13)', 'A4 (SDA)', 'A5 (SCL)'];
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  function makeQuestion(kind){
+    if (kind === 'name'){
+      const ts = shuffle(QTYPES.filter(t => RIDDLE[t])).slice(0, 3), t = ts[0];
+      const clue = RIDDLE[t];
+      return {kind, q:`¿Qué componente es? <b>«${esc(clue)}»</b>`, say:`¿Qué componente es? ${clue}`, opts: shuffle(ts.map(x => ({k: x, html:`<svg width="40" height="40" viewBox="0 0 24 24" aria-hidden="true">${ICON[x]}</svg><span>${esc(TYPES[x].name)}</span>`}))), right: t, why:`Es ${TYPES[t].name}. ${KID[t]}`};
+    }
+    const pool = {};
+    QTYPES.forEach(t => TYPES[t].legs.forEach(l => { const r = ROLE[t][l.id]; const nm = (LEGTXT[t] || {})[l.id] || l.n; if (r && ['gnd','5v','pin'].includes(r.to) && !/^GND/.test(nm) && !/\((GND|5V)\)/.test(nm) && !/^(SDA|SCL)/.test(nm)) (pool[legAnswer(t, r)] ??= []).push([t, l]); }));
+    const [t, l] = pick(pool[pick(Object.keys(pool))]), R = ROLE[t], r = R[l.id], right = legAnswer(t, r);
+    const wrong = shuffle(ANS.filter(a => a !== right && !(right.startsWith('5V') && a.startsWith('5V')))).slice(0, 2);
+    const legName = ((LEGTXT[t] || {})[l.id] || l.n).replace(/\s*\((ánodo|cátodo)[^)]*\)/, m => m.includes('ánodo') ? ' (la más larga)' : ' (la corta)');
+    return {kind, q:`<span class="gqi"><svg width="48" height="48" viewBox="0 0 24 24" aria-hidden="true">${ICON[t]}</svg></span><b>${esc(TYPES[t].name)}</b>: ¿a dónde va <b>${esc(legName)}</b>?`, say:`${TYPES[t].name}. ¿A dónde va ${legName}?`,
+      opts: shuffle([right, ...wrong].map(a => ({k: a, html:`<span>${esc(a)}</span>`}))), right, why:`${legName} va a: ${right}. ${R[l.id].res ? 'La resistencia protege al componente para que no se queme.' : R[l.id].to === 'gnd' ? 'GND es el negativo, el cero, por donde regresa la corriente.' : R[l.id].to === '5v' ? 'Por ahí recibe la energía para funcionar.' : r.kind === 'analog' ? 'Los pines A0 a A5 leen valores de 0 a 1023, no solo prendido o apagado.' : r.kind === 'sda' || r.kind === 'scl' ? 'En el Arduino Uno el I2C siempre usa A4 y A5.' : 'Por ese pin el Arduino manda o recibe la señal.'}`};
+  }
+  let Q = null;
+  function quizStart(){
+    Q = {n: 0, total: 10, pts: 0, streak: 0, ok: 0, q: null, t0: 0, timer: null, lock: false};
+    quizNext();
+  }
+  function quizNext(){
+    clearInterval(Q.timer);
+    if (Q.n >= Q.total) return quizEnd();
+    Q.n++; Q.lock = false;
+    Q.q = makeQuestion(Q.n % 3 === 0 ? 'name' : 'leg');
+    Q.t0 = performance.now();
+    const body = $('#gqz', modal);
+    body.innerHTML = `<div class="gqhead"><span>Pregunta ${Q.n} de ${Q.total}</span><span>⭐ ${Q.pts}</span><span>${Q.streak >= 2 ? '🔥 ' + Q.streak : ''}</span></div>
+      <div class="gtime"><i id="gqbar"></i></div>
+      <p class="gq">${Q.q.q}</p>
+      <div class="gopts ${Q.q.kind}">${Q.q.opts.map((o, i) => `<button class="gopt" data-k="${esc(o.k)}"><span class="gn">${'ABC'[i]}</span>${o.html}</button>`).join('')}</div>
+      <p class="gfb" id="gqfb" aria-live="polite"></p>`;
+    body.querySelectorAll('.gopt').forEach(b => b.onclick = () => answer(b.dataset.k, b));
+    GUIDE.tell('', Q.q.say.replace(/</g, '&lt;'));
+    const LIM = 20000;
+    Q.timer = setInterval(() => {
+      const left = Math.max(0, 1 - (performance.now() - Q.t0) / LIM);
+      const bq = $('#gqbar', modal); if (bq) bq.style.width = left * 100 + '%';
+      if (left <= 0) answer(null, null);
+    }, 100);
+  }
+  function answer(k, btn){
+    if (Q.lock) return; Q.lock = true; clearInterval(Q.timer);
+    const good = k === Q.q.right;
+    const secs = (performance.now() - Q.t0) / 1000;
+    modal.querySelectorAll('.gopt').forEach(b => { b.disabled = true; if (b.dataset.k === Q.q.right) b.classList.add('right'); });
+    if (btn && !good) btn.classList.add('wrong');
+    if (good){ Q.ok++; Q.streak++; const p = 100 + Math.round(Math.max(0, 20 - secs) * 5) + (Q.streak >= 3 ? 50 : 0); Q.pts += p; }
+    else Q.streak = 0;
+    const fb = $('#gqfb', modal);
+    const head = good ? pick(['¡Correcto!', '¡Bien hecho!', '¡Exacto!', '¡Genial!']) : k == null ? '¡Se acabó el tiempo!' : '¡Uy, casi!';
+    fb.innerHTML = `<b>${head}</b> ${esc(Q.q.why)} <button class="btn primary" id="gqNext">${Q.n >= Q.total ? 'Ver resultado' : 'Siguiente ▶'}</button>`;
+    fb.className = 'gfb ' + (good ? 'ok' : 'bad');
+    $('#gqNext', modal).onclick = quizNext;
+    GUIDE.tell('', head + ' ' + esc(Q.q.why));
+  }
+  function quizEnd(){
+    const stars = Q.ok >= 9 ? 3 : Q.ok >= 6 ? 2 : Q.ok >= 3 ? 1 : 0;
+    const rec = Q.pts > (prog.best || 0); if (rec){ prog.best = Q.pts; saveProg(); }
+    if (stars >= 2) celebrate();
+    $('#gqz', modal).innerHTML = `<div class="gwin"><div class="gstars">${[1, 2, 3].map(i => `<span class="${i <= stars ? 'on' : ''}">★</span>`).join('')}</div>
+      <h3>${Q.ok} de ${Q.total} correctas</h3><p class="gbig">⭐ ${Q.pts} puntos</p><p class="gsm">${rec ? '🏆 ¡Nuevo récord en este computador!' : `Récord de este computador: ${prog.best} puntos`}</p>
+      <div class="gacts"><button class="btn primary" id="gqAgain">Jugar otra vez</button><button class="btn" id="gqBack">Volver</button></div></div>`;
+    $('#gqAgain', modal).onclick = quizStart;
+    $('#gqBack', modal).onclick = () => tab('quiz');
+    GUIDE.tell('¡Terminaste!', `Acertaste ${Q.ok} de ${Q.total} y ganaste ${Q.pts} puntos. ${rec ? '¡Es un nuevo récord!' : ''} ${stars >= 2 ? '¡Eres un experto en conexiones!' : '¡Practica otra vez y verás que mejoras!'}`);
+  }
+
+  /* ---------- Ventana de juegos ---------- */
+  const modal = document.createElement('div');
+  modal.className = 'gmodal'; modal.hidden = true; modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-label', 'Jugar');
+  modal.innerHTML = `<div class="gcard"><div class="ghead"><h2>🎮 Jugar y aprender</h2>
+      <div class="gtabs" role="tablist"><button class="gtab" data-t="mis" role="tab">⭐ Misiones</button><button class="gtab" data-t="quiz" role="tab">⚡ Concurso relámpago</button></div>
+      <button class="gx" id="gClose" aria-label="Cerrar">✕</button></div><div class="gbody" id="gbody"></div></div>`;
+  document.body.appendChild(modal);
+  function tab(t){
+    if (Q) clearInterval(Q.timer);
+    modal.querySelectorAll('.gtab').forEach(b => b.setAttribute('aria-selected', b.dataset.t === t));
+    const body = $('#gbody', modal);
+    if (t === 'mis'){
+      const tot = M.reduce((s, m) => s + (prog.stars[m.id] || 0), 0);
+      let html = `<p class="gintro">Arma cada circuito tú mismo y gana hasta <b>3 estrellas</b>. Llevas <b>⭐ ${tot} de ${M.length * 3}</b>.</p>`;
+      let lv = 0;
+      M.forEach((m, k) => {
+        if (m.lvl !== lv){ if (lv) html += '</div>'; lv = m.lvl; html += `<h3 class="glv">${LVL[lv]}</h3><div class="gmap">`; }
+        const s = prog.stars[m.id] || 0, op = unlocked(k);
+        html += `<button class="gm ${op ? '' : 'lock'} ${s ? 'won' : ''}" data-k="${k}" ${op ? '' : 'disabled'}><span class="gmn">${k + 1}</span><span class="gmi">${op ? m.ico : '🔒'}</span><span class="gmt">${m.t}</span><span class="gms">${[1, 2, 3].map(i => `<i class="${i <= s ? 'on' : ''}">★</i>`).join('')}</span></button>`;
+      });
+      html += `</div><div class="gfoot"><label class="chk"><input type="checkbox" id="gAll" ${prog.all ? 'checked' : ''}> Modo profesor: abrir todas las misiones</label><button class="btn small" id="gReset">Borrar progreso</button></div><p class="msg" id="gWarn"></p>`;
+      body.innerHTML = html;
+      body.querySelectorAll('.gm:not(.lock)').forEach(b => b.onclick = () => {
+        if ((comps.length || wires.length) && !b.dataset.ok){ body.querySelectorAll('.gm').forEach(x => delete x.dataset.ok); b.dataset.ok = '1'; $('#gWarn', body).textContent = 'La misión reemplaza tu circuito y tu código. Toca otra vez la misión para empezar.'; return; }
+        startMission(+b.dataset.k);
+      });
+      $('#gAll', body).onchange = e => { prog.all = e.target.checked; saveProg(); tab('mis'); };
+      $('#gReset', body).onclick = e => { if (!e.target.dataset.ok){ e.target.dataset.ok = '1'; e.target.textContent = 'Toca otra vez para borrar'; return; } prog.stars = {}; prog.best = 0; saveProg(); tab('mis'); };
+    } else {
+      body.innerHTML = `<div id="gqz"><div class="gqintro"><p class="gbig">⚡</p><h3>Concurso relámpago</h3><p>10 preguntas: <b>¿a dónde va cada cable?</b> y <b>¿qué componente es?</b> Tienes 20 segundos por pregunta. Si respondes rápido ganas más puntos, y con 3 seguidas, ¡bonus 🔥!</p>
+        <p class="gsm">Récord de este computador: <b>${prog.best || 0}</b> puntos</p><button class="btn primary" id="gqGo">¡Empezar!</button></div></div>`;
+      $('#gqGo', body).onclick = quizStart;
+    }
+  }
+  function openGames(t = 'mis'){ modal.hidden = false; tab(t); setTimeout(() => { const f = modal.querySelector('.gtab[aria-selected="true"]'); f && f.focus(); }, 30); }
+  function closeGames(){ if (Q) clearInterval(Q.timer); modal.hidden = true; }
+  modal.querySelectorAll('.gtab').forEach(b => b.onclick = () => tab(b.dataset.t));
+  $('#gClose', modal).onclick = closeGames;
+  modal.addEventListener('click', e => { if (e.target === modal) closeGames(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) closeGames(); });
+
+  const hb = document.createElement('button');
+  hb.className = 'btn primary'; hb.id = 'playBtn'; hb.textContent = '🎮 Jugar'; hb.title = 'Misiones y concurso para aprender';
+  const g = $('#guideBtn'); g.parentNode.insertBefore(hb, g);
+  hb.onclick = () => openGames('mis');
+
+  const css = document.createElement('style');
+  css.textContent = `
+  .gmodal{position:fixed;inset:0;z-index:70;background:rgba(8,14,12,.6);display:flex;align-items:center;justify-content:center;padding:16px}
+  .gmodal[hidden]{display:none}
+  .gcard{background:var(--surface);color:var(--ink);border-radius:20px;width:min(860px,100%);max-height:calc(100vh - 32px);display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,.3);overflow:hidden}
+  .ghead{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+  .ghead h2{font-family:var(--f-disp);font-size:22px;margin:0}
+  .gtabs{display:flex;gap:6px;flex:1}
+  .gtab{border:2px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;padding:7px 14px;font:700 15px var(--f-body);cursor:pointer}
+  .gtab[aria-selected="true"]{border-color:var(--accent);background:var(--accent-soft)}
+  .gx{border:0;background:none;color:var(--ink);font-size:20px;cursor:pointer;width:36px;height:36px;border-radius:10px}
+  .gx:hover{background:var(--line)}
+  .gbody{padding:16px 18px 20px;overflow:auto}
+  .gintro{margin:0 0 6px;font-size:16px}
+  .glv{font-family:var(--f-disp);font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px}
+  .gmap{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .gm{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:14px 8px 10px;border:2px solid var(--line);border-radius:16px;background:var(--surface-2);color:var(--ink);cursor:pointer;font:inherit;transition:transform .12s}
+  .gm:hover:not(:disabled){transform:translateY(-3px);border-color:var(--accent)}
+  .gm.won{border-color:#E6A23C;background:color-mix(in srgb,#FFB020 12%,var(--surface-2))}
+  .gm.lock{opacity:.5;cursor:not-allowed}
+  .gmn{position:absolute;top:6px;left:9px;font:700 12px var(--f-mono);color:var(--muted)}
+  .gmi{font-size:34px;line-height:1.1}
+  .gmt{font-weight:700;font-size:14px;text-align:center}
+  .gms i{font-style:normal;color:var(--line);font-size:18px}.gms i.on{color:#FFB020}
+  .gfoot{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-top:16px;font-size:14px;color:var(--muted)}
+  .gqintro,.gwin{text-align:center;padding:10px}
+  .gqintro p{font-size:16px;max-width:560px;margin:8px auto}
+  .gbig{font-size:40px;font-weight:700;margin:4px 0;font-family:var(--f-disp)}
+  .gsm{color:var(--muted);font-size:14px}
+  .gqhead{display:flex;justify-content:space-between;font:700 14px var(--f-disp);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .gtime{height:8px;border-radius:4px;background:var(--line);margin:8px 0 14px;overflow:hidden}
+  .gtime i{display:block;height:100%;width:100%;background:linear-gradient(90deg,#E24A3B,#FFB020,#23864F);transition:width .1s linear}
+  .gq{font-size:20px;line-height:1.4;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .gqi{display:inline-grid;place-items:center;width:64px;height:64px;border-radius:14px;background:var(--surface-2);border:1px solid var(--line)}
+  .gopts{display:grid;gap:10px;margin-top:12px}
+  .gopts.name{grid-template-columns:repeat(3,1fr)}
+  .gopt{display:flex;align-items:center;gap:12px;padding:12px 14px;border:2px solid var(--line);border-radius:14px;background:var(--surface-2);color:var(--ink);font:600 17px var(--f-body);cursor:pointer;text-align:left}
+  .gopts.name .gopt{flex-direction:column;text-align:center;gap:6px}
+  .gopt:hover:not(:disabled){border-color:var(--accent)}
+  .gopt .gn{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font:700 14px var(--f-disp);flex:none}
+  .gopt.right{border-color:#23864F;background:color-mix(in srgb,#23864F 18%,var(--surface-2))}
+  .gopt.wrong{border-color:#E24A3B;background:color-mix(in srgb,#E24A3B 15%,var(--surface-2));animation:gshake .35s}
+  @keyframes gshake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .gfb{margin-top:14px;font-size:16px;padding:12px 14px;border-radius:12px}
+  .gfb:empty{display:none}
+  .gfb.ok{background:color-mix(in srgb,#23864F 14%,var(--surface))}.gfb.bad{background:color-mix(in srgb,#E6A23C 16%,var(--surface))}
+  .gfb .btn{margin-left:8px}
+  .gstars{font-size:52px;letter-spacing:6px}
+  .gstars span{color:var(--line);display:inline-block}
+  .gstars span.on{color:#FFB020;animation:gpop .5s backwards}
+  .gstars span.on:nth-child(2){animation-delay:.2s}.gstars span.on:nth-child(3){animation-delay:.4s}
+  @keyframes gpop{from{transform:scale(0) rotate(-90deg)}70%{transform:scale(1.3)}}
+  .gwin h3{font-family:var(--f-disp);font-size:24px;margin:4px 0}
+  .gacts{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px}
+  .gbar{position:fixed;bottom:12px;right:12px;z-index:55;width:min(380px,calc(100vw - 24px));max-height:min(62vh,calc(100vh - 24px));overflow:auto;background:var(--surface);color:var(--ink);border:3px solid #FFB020;border-radius:18px;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+  .gbar[hidden]{display:none}
+  .gbh{display:flex;align-items:center;gap:10px;padding:10px 12px;background:color-mix(in srgb,#FFB020 16%,var(--surface))}
+  .gbh small{display:block;font:700 11px var(--f-disp);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .gbh b{font-family:var(--f-disp);font-size:18px}
+  .gbh .gx{margin-left:auto}
+  .gico{font-size:30px}
+  .gbb{padding:10px 14px 14px}
+  .gbar.min .gbb{display:none}.gbar.min #gbMin{transform:rotate(180deg)}
+  .gst{margin:0 0 8px;font-size:15px;line-height:1.45}
+  .gck{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;font-size:14px}
+  .gck>li{display:flex;gap:8px;padding:8px;border-radius:10px;background:var(--surface-2)}
+  .gck>li.ok{background:color-mix(in srgb,#23864F 14%,var(--surface-2))}
+  .gck>li.bad{background:color-mix(in srgb,#E24A3B 14%,var(--surface-2))}
+  .gck .gi{font-weight:700;width:18px;flex:none}
+  .gck ul{list-style:none;margin:4px 0 0;padding:0;color:var(--muted)}
+  .gck ul li.ok{color:#23864F}
+  .ghint{margin-top:8px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,#FFB020 14%,var(--surface));font-size:14px}
+  .gbar .gacts{justify-content:flex-start}
+  body.inmission:not(.gtest) .comp [data-auto]{display:none!important}
+  .gconf{position:fixed;inset:0;pointer-events:none;z-index:90;overflow:hidden}
+  .gconf i{position:absolute;top:-20px;width:10px;height:16px;border-radius:2px;animation:gfall linear forwards}
+  @keyframes gfall{to{top:105vh;transform:rotate(720deg) translateX(40px)}}
+  @media (max-width:640px){.gopts.name{grid-template-columns:1fr}.gq{font-size:17px}.gbar{bottom:auto;top:12px}}
+  @media (prefers-reduced-motion:reduce){.gconf{display:none}.gm,.gopt{transition:none;animation:none}}`;
+  document.head.appendChild(css);
+
+  const __test = () => { comps = comps.filter(c => c.type !== 'resistor'); renderParts(); renderCards(); changed(false); };
+  return {__test, M, openGames, startMission, check, state: () => cur, renderBar, prog};
+})();
+window.__games = GAMES;
+{
+  const _review = review;
+  review = function(notify, ctx){ _review(notify, ctx); if (GAMES.state()) GAMES.renderBar(); };
 }
 
 })();
