@@ -280,7 +280,7 @@ select.sel{border:1px solid var(--line);background:var(--surface);border-radius:
   <header class="top">
     <div class="brand">
       <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect x="1" y="5" width="36" height="28" rx="4" fill="var(--pcb)"/><rect x="0" y="11" width="9" height="8" fill="var(--metal)"/><rect x="16" y="20" width="16" height="6" rx="1" fill="var(--chip)"/><rect x="12" y="7" width="22" height="4" fill="var(--hdr)"/><circle cx="13" cy="25" r="2" fill="var(--hot)"/></svg>
-      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.22-1159</span></p></div>
+      <div><h1>Banco Arduino</h1><p>Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-1520</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -5335,6 +5335,290 @@ if (!restore()) loadExample(0);
 renderParts(); renderCards(); drawWires(); review(false); prevKeys = new Set(issues.map(i => i.lvl + '|' + i.cid + '|' + i.msg));
 renderGutter();
 requestAnimationFrame(frame);
+/* ---------------- Chispa: guía con voz ---------------- */
+const GUIDE = (() => {
+  const LS = k => { try { return localStorage.getItem('ba_guide_' + k); } catch (e) { return null; } };
+  const LSset = (k, v) => { try { localStorage.setItem('ba_guide_' + k, v); } catch (e) {} };
+  const st = {on: LS('on') !== '0', voice: LS('voice') !== '0', auto: true, steps: [], i: -1, playing: false, timer: null, seq: 0, focus: null};
+  const synth = window.speechSynthesis || null;
+  let voice = null;
+  function pickVoice(){
+    if (!synth) return;
+    const vs = synth.getVoices().filter(v => /^es/i.test(v.lang));
+    const score = v => (/natural|online/i.test(v.name) ? 10 : 0) + ({'es-CO':6, 'es-MX':5, 'es-US':4, 'es-419':4, 'es-ES':3}[v.lang.replace('_', '-')] || 1) + (/sabina|salome|dalia|paloma|helena|laura|elvira/i.test(v.name) ? 1 : 0);
+    voice = vs.sort((a, b) => score(b) - score(a))[0] || null;
+  }
+  if (synth){ pickVoice(); try { synth.onvoiceschanged = pickVoice; } catch (e) {} }
+
+  /* --- texto para leer en voz alta --- */
+  const strip = h => { const d = document.createElement('div'); d.innerHTML = h; return (d.textContent || '').replace(/\s+/g, ' ').trim(); };
+  function speakable(t){
+    return t
+      .replace(/(\d)[.,](\d)\s?V\b/g, '$1 coma $2 voltios')
+      .replace(/(\d+)\s?V\b/g, '$1 voltios')
+      .replace(/(\d+)\s?kΩ/g, '$1 kilo ohmios').replace(/(\d+)\s?Ω/g, '$1 ohmios')
+      .replace(/(\d+)\s?mA\b/g, '$1 miliamperios')
+      .replace(/\bGND\b/g, 'G N D').replace(/\bVCC\b/g, 'V C C').replace(/\bSDA\b/g, 'S D A').replace(/\bSCL\b/g, 'S C L')
+      .replace(/\bVIN\b/g, 'V I N').replace(/\bI2C\b/g, 'I dos C').replace(/\bUSB\b/g, 'U S B').replace(/\bLED(s?)\b/g, 'led$1')
+      .replace(/\bPWM\b/g, 'P W M').replace(/\bCOM\b/g, 'común').replace(/\bNO\b/g, 'N O').replace(/\bRGB\b/g, 'R G B')
+      .replace(/\bpin D(\d{1,2})\b/g, 'pin $1').replace(/\bD(\d{1,2})\b/g, 'pin $1').replace(/\bA([0-5])\b/g, 'A $1')
+      .replace(/0x([0-9A-F]{2})/gi, (m, h) => 'cero equis ' + h.split('').join(' '))
+      .replace(/\briel\s*\+/g, 'riel positivo').replace(/\briel\s*[−-]/g, 'riel negativo')
+      .replace(/\s\+\s|^\+\s|\(\+\)/g, ' positivo ').replace(/\s[−]\s|^[−]\s|\(−\)/g, ' negativo ').replace(/\+\s/g, 'positivo ').replace(/−\s/g, 'negativo ')
+      .replace(/→/g, ', va a ').replace(/[«»"“”]/g, '').replace(/\s*·\s*/g, '. ').replace(/[✓✕○](?=\s)/g, '')
+      .replace(/\s+/g, ' ').trim();
+  }
+
+  /* --- interfaz --- */
+  const box = document.createElement('div');
+  box.id = 'chispa'; box.className = 'chispa';
+  box.innerHTML = `
+    <div class="cb" role="status" aria-live="polite">
+      <div class="cbt" id="cbText"></div>
+      <div class="cbp" id="cbProg"></div>
+      <div class="cba">
+        <button class="cbtn" id="cbPrev" title="Paso anterior">◀ Atrás</button>
+        <button class="cbtn main" id="cbPlay" title="Pausar o seguir">⏸ Pausa</button>
+        <button class="cbtn" id="cbNext" title="Siguiente paso">Siguiente ▶</button>
+        <button class="cbtn" id="cbAgain" title="Repetir" aria-label="Repetir">↻</button>
+        <button class="cbtn" id="cbVoice" title="Voz encendida o apagada" aria-label="Voz">🔊</button>
+        <button class="cbtn" id="cbTour" title="Explicar todo el circuito paso a paso">Explícame el circuito</button>
+        <button class="cbtn" id="cbSide" title="Pasar a Chispa al otro lado de la pantalla" aria-label="Cambiar de lado">⇄</button>
+        <button class="cbtn x" id="cbHide" title="Esconder a Chispa" aria-label="Esconder">✕</button>
+      </div>
+    </div>
+    <button class="bot" id="cbBot" title="Chispa, tu guía. Toca para que te explique el circuito" aria-label="Chispa, guía con voz">
+      <svg viewBox="0 0 100 110" width="86" height="94" aria-hidden="true">
+        <line x1="50" y1="22" x2="50" y2="8" stroke="#2E3D39" stroke-width="3"/>
+        <path class="spark" d="M50 0 l4 6 l7 1 l-5 5 l1 7 l-7-3 l-7 3 l1-7 l-5-5 l7-1z" fill="#FFB020"/>
+        <rect x="14" y="22" width="72" height="56" rx="20" fill="#0B8C94"/>
+        <rect x="22" y="32" width="56" height="34" rx="13" fill="#E9FBFA"/>
+        <g class="eyes"><ellipse cx="38" cy="47" rx="5" ry="6" fill="#14201D"/><ellipse cx="62" cy="47" rx="5" ry="6" fill="#14201D"/>
+        <circle cx="40" cy="45" r="1.6" fill="#fff"/><circle cx="64" cy="45" r="1.6" fill="#fff"/></g>
+        <rect class="mouth" x="42" y="57" width="16" height="4" rx="2" fill="#E24A3B"/>
+        <circle cx="27" cy="56" r="3.5" fill="#FF9AA2" opacity=".7"/><circle cx="73" cy="56" r="3.5" fill="#FF9AA2" opacity=".7"/>
+        <rect x="8" y="42" width="7" height="16" rx="3" fill="#086B71"/><rect x="85" y="42" width="7" height="16" rx="3" fill="#086B71"/>
+        <rect x="30" y="80" width="40" height="22" rx="8" fill="#0B8C94"/>
+        <circle cx="50" cy="91" r="5" fill="#FFB020"/>
+        <rect x="26" y="102" width="14" height="6" rx="3" fill="#2E3D39"/><rect x="60" y="102" width="14" height="6" rx="3" fill="#2E3D39"/>
+      </svg>
+    </button>`;
+  document.body.appendChild(box);
+  const css = document.createElement('style');
+  css.textContent = `
+  .chispa{position:fixed;left:16px;bottom:16px;z-index:60;display:flex;align-items:flex-end;gap:10px;flex-direction:row-reverse;justify-content:flex-end;pointer-events:none}
+  .chispa>*{pointer-events:auto}
+  .chispa .bot{border:0;background:none;padding:0;cursor:pointer;filter:drop-shadow(0 4px 8px rgba(0,0,0,.25));animation:cfloat 3s ease-in-out infinite}
+  .chispa .bot:focus-visible{outline:3px solid var(--accent);border-radius:16px}
+  @keyframes cfloat{50%{transform:translateY(-5px)}}
+  .chispa .eyes{animation:cblink 4s infinite;transform-origin:50px 47px}
+  @keyframes cblink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+  .chispa .mouth{transform-origin:50px 59px;transition:transform .1s}
+  .chispa.talk .mouth{animation:ctalk .22s infinite alternate}
+  @keyframes ctalk{from{transform:scaleY(1)}to{transform:scaleY(3.2)}}
+  .chispa.talk .spark{animation:cspark .5s infinite alternate}
+  @keyframes cspark{to{opacity:.35}}
+  .chispa .cb{background:var(--surface);color:var(--ink);border:2px solid var(--accent);border-radius:18px 18px 18px 4px;box-shadow:0 10px 28px rgba(0,0,0,.18);padding:12px 14px 10px;width:min(360px,calc(100vw - 120px));margin-bottom:40px}
+  .chispa .cbt{font-size:15px;line-height:1.4;max-height:24vh;overflow:auto}
+  .chispa.right{left:auto;right:16px;flex-direction:row;justify-content:flex-start}
+  .chispa.right .cb{border-radius:18px 18px 4px 18px}
+  .chispa .cbt b{color:var(--accent)}
+  .chispa .cbt .ttl{display:block;font-family:var(--f-disp);font-weight:700;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+  .chispa .cbp{display:flex;gap:4px;margin:8px 0 6px}
+  .chispa .cbp i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+  .chispa .cbp i.on{background:var(--accent)}
+  .chispa .cba{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .chispa .cbtn{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:10px;min-width:34px;height:32px;padding:0 8px;font:600 13px var(--f-body);cursor:pointer}
+  .chispa .cbtn:disabled{opacity:.4;cursor:default}
+  .chispa .cbtn:hover{border-color:var(--accent)}
+  .chispa .cbtn.main{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .chispa .cbtn.x{margin-left:auto}
+  .chispa .cbtn[hidden]{display:none}
+  .chispa.min .cb{display:none}
+  .chispa.min .bot svg{width:58px;height:64px}
+  .chispa.off{display:none}
+  .gfocus{filter:drop-shadow(0 0 5px #FFB020) drop-shadow(0 0 3px #FFB020);animation:gpulse .9s ease-in-out infinite alternate}
+  @keyframes gpulse{to{filter:drop-shadow(0 0 12px #FFB020) drop-shadow(0 0 4px #FF8A00)}}
+  .btn.gfocus{box-shadow:0 0 0 4px #FFB020}
+  @media (max-width:640px){.chispa .cb{margin-bottom:30px}.chispa .bot svg{width:60px;height:66px}}
+  @media (prefers-reduced-motion:reduce){.chispa .bot,.chispa .eyes,.gfocus{animation:none}}`;
+  document.head.appendChild(css);
+  const $c = s => box.querySelector(s);
+  const tEl = $c('#cbText'), pEl = $c('#cbProg');
+
+  // botón en la cabecera
+  const hb = document.createElement('button');
+  hb.className = 'btn'; hb.id = 'guideBtn'; hb.title = 'Chispa, el guía que explica en voz alta';
+  const theme = $('#themeBtn'); theme.parentNode.insertBefore(hb, theme);
+  function syncUI(){
+    hb.textContent = st.on ? '🤖 Guía: sí' : '🤖 Guía: no';
+    hb.setAttribute('aria-pressed', st.on);
+    box.classList.toggle('off', !st.on);
+    $c('#cbVoice').textContent = st.voice ? '🔊' : '🔇';
+    $c('#cbVoice').title = st.voice ? 'Apagar la voz' : 'Encender la voz';
+    const tour = st.steps.length > 0;
+    ['#cbPrev', '#cbNext', '#cbPlay'].forEach(s => $c(s).hidden = !tour);
+    $c('#cbPlay').textContent = st.playing ? '⏸ Pausa' : '▶ Seguir';
+    $c('#cbPrev').disabled = st.i <= 0; $c('#cbNext').disabled = st.i >= st.steps.length - 1;
+    pEl.innerHTML = tour ? st.steps.map((s, k) => `<i class="${k <= st.i ? 'on' : ''}"></i>`).join('') : '';
+    pEl.hidden = !tour;
+  }
+
+  /* --- voz --- */
+  function stopVoice(){ st.seq++; clearTimeout(st.timer); if (synth) try { synth.cancel(); } catch (e) {} box.classList.remove('talk'); }
+  function say(html, done){
+    stopVoice();
+    const seq = st.seq;
+    const plain = speakable(strip(html));
+    const fin = () => { if (seq !== st.seq) return; box.classList.remove('talk'); done && done(); };
+    const readMs = Math.min(16000, 1600 + plain.split(' ').length * 330);
+    if (!st.voice || !synth || !voice){
+      box.classList.add('talk'); setTimeout(() => { if (seq === st.seq) box.classList.remove('talk'); }, Math.min(2500, readMs));
+      st.timer = setTimeout(fin, readMs); return;
+    }
+    // frases cortas: algunos navegadores cortan las frases muy largas
+    const parts = plain.match(/[^.!?;:]+[.!?;:]*/g) || [plain];
+    const chunks = []; let cur = '';
+    parts.forEach(p => { if ((cur + p).length > 180 && cur){ chunks.push(cur); cur = p; } else cur += p; }); if (cur.trim()) chunks.push(cur);
+    box.classList.add('talk');
+    let k = 0;
+    const guard = () => { clearTimeout(st.timer); st.timer = setTimeout(fin, readMs * 2 + 4000); };
+    const next = () => {
+      if (seq !== st.seq) return;
+      if (k >= chunks.length){ fin(); return; }
+      const u = new SpeechSynthesisUtterance(chunks[k++].trim());
+      u.voice = voice; u.lang = voice.lang; u.rate = 0.95; u.pitch = 1.15;
+      u.onend = next; u.onerror = next;
+      try { synth.speak(u); } catch (e) { fin(); }
+    };
+    guard(); next();
+  }
+
+  /* --- resaltar --- */
+  function focus(target){
+    if (st.focus) st.focus.classList.remove('gfocus');
+    st.focus = null;
+    if (!target) return;
+    const el = target.g || target;
+    if (target.g) select(target, true);
+    el.classList.add('gfocus'); st.focus = el;
+    try { el.scrollIntoView({block:'center', behavior:'smooth'}); } catch (e) {}
+  }
+
+  /* --- mostrar un mensaje (notas, eventos) --- */
+  function tell(title, html, opts = {}){
+    if (!st.on) return;
+    if (st.steps.length && !opts.keepTour){ st.playing = false; }
+    box.classList.remove('min');
+    tEl.innerHTML = (title ? `<span class="ttl">${title}</span>` : '') + html;
+    syncUI();
+    say((title ? title + '. ' : '') + html, opts.done);
+  }
+
+  /* --- recorrido paso a paso --- */
+  function buildSteps(){
+    const S = [];
+    const h3 = $('#plan h3'), idea = $('#plan .aibadge');
+    const planOk = $('#plan') && !$('#plan').hidden && h3;
+    if (!comps.length){
+      S.push({t:'¡Hola!', h:'Soy <b>Chispa</b>, tu guía. Todavía no hay nada en la protoboard. Escribe arriba qué quieres construir, por ejemplo <b>«un LED que encienda con un botón»</b>, y pulsa <b>Armar en la protoboard</b>. O busca un componente y agrégalo. ¡Yo te voy explicando!'});
+      return S;
+    }
+    const title = planOk ? h3.textContent.replace(/^Cómo conectar:\s*/, '') : 'tu circuito';
+    let ideaTxt = idea ? idea.textContent.replace(/^[^:]*:\s*/, '') : '';
+    S.push({t:'Vamos a ver', h:`¡Hola! Soy <b>Chispa</b>. Te voy a explicar <b>${esc(title)}</b> paso a paso.${ideaTxt && ideaTxt !== idea.textContent ? ' ' + esc(ideaTxt) : ''} Mira la pieza que brilla en la protoboard.`});
+    buildNets();
+    const g = ['bn','tn'].some(r => infoOf(net(r + ':0')).ardg);
+    const v = ['bp','tp'].some(r => infoOf(net(r + ':0')).ard5);
+    if (g || v) S.push({t:'Primero, la energía', h:`${g ? 'Un cable lleva el <b>GND</b> del Arduino al <b>riel −</b>, la línea azul. GND es el negativo, el cero.' : ''} ${v ? 'Otro cable lleva el <b>5V</b> del Arduino al <b>riel +</b>, la línea roja. Así todos los componentes pueden tomar energía de los rieles.' : ''} Recuerda: los 5 agujeros de una misma columna están unidos por dentro.`});
+    const legNets = c => TYPES[c.type].legs.map(l => net(legHole(c, l)));
+    const resis = comps.filter(c => c.type === 'resistor'), told = new Set();
+    const order = [];
+    for (const c of comps.filter(c => c.type !== 'resistor')){
+      order.push(c);
+      const mine = legNets(c);
+      resis.filter(r => !told.has(r) && legNets(r).some(n => mine.includes(n))).forEach(r => { told.add(r); order.push(r); });
+    }
+    resis.filter(r => !told.has(r)).forEach(r => order.push(r));
+    for (const c of order){
+      const T = TYPES[c.type];
+      if (c.type === 'resistor'){
+        S.push({t: T.name + ' ' + (c.ohm || ''), c, h:`Esta es una <b>resistencia de ${esc(c.ohm || '220 Ω')}</b>. Frena la corriente para que el componente no se queme. Va <b>en serie</b>: una pata en la columna del componente y la otra en la del cable que viene del pin.`});
+        continue;
+      }
+      const G = guideFor(c).filter(Boolean);
+      const lines = G.map(x => x.st === 'bad' ? `<b>¡Ojo!</b> ${x.html} (ahora va a ${esc(x.now || 'otro lugar')}).` : x.html + '.');
+      const own = issues.filter(i => i.cid === c.id && (i.lvl === 'err' || i.lvl === 'warn'));
+      const nm = T.name + (c.type === 'led' && c.color ? ' ' + c.color : '');
+      S.push({t: nm, c, h:`Este es: <b>${esc(nm)}</b>. ${esc(T.desc)}.<br>${lines.join('<br>')}${own.length ? `<br><b>Revisa:</b> ${esc(own[0].msg)}.` : ''}`});
+    }
+    const nErr = issues.filter(i => i.lvl === 'err').length, nWarn = issues.filter(i => i.lvl === 'warn').length;
+    if (nErr || nWarn) S.push({t:'Antes de probar', el: $('#review'), h:`Hay <b>${nErr} error${nErr === 1 ? '' : 'es'}</b> y <b>${nWarn} aviso${nWarn === 1 ? '' : 's'}</b>. Míralos en <b>Revisión del circuito</b>: cada uno dice qué está mal y por qué. Corrígelos y luego pulsa <b>Ejecutar</b>.`});
+    else S.push({t:'¡A probar!', el: $('#run'), h:'¡Todo está bien conectado! Ahora pulsa el botón <b>▶ Ejecutar</b> para que el Arduino corra el programa. Si quieres ver el circuito de verdad, toca <b>🧊 Ver en 3D</b>.'});
+    return S;
+  }
+  function show(i){
+    st.i = Math.max(0, Math.min(i, st.steps.length - 1));
+    const s = st.steps[st.i];
+    box.classList.remove('min');
+    tEl.innerHTML = `<span class="ttl">Paso ${st.i + 1} de ${st.steps.length} · ${esc(s.t)}</span>${s.h}`;
+    focus(s.c || s.el || null);
+    syncUI();
+    say(s.h, () => { if (st.playing && st.auto && st.i < st.steps.length - 1) st.timer = setTimeout(() => show(st.i + 1), 900); else if (st.i >= st.steps.length - 1){ st.playing = false; syncUI(); } });
+  }
+  function startTour(){
+    if (!st.on){ st.on = true; LSset('on', '1'); }
+    st.steps = buildSteps(); st.playing = true; show(0);
+  }
+  function endTour(){ st.steps = []; st.i = -1; st.playing = false; focus(null); syncUI(); }
+
+  $c('#cbPrev').onclick = () => { st.playing = false; show(st.i - 1); };
+  $c('#cbNext').onclick = () => { show(st.i + 1); };
+  $c('#cbAgain').onclick = () => { if (st.steps.length) show(st.i); else say(tEl.innerHTML); };
+  $c('#cbPlay').onclick = () => {
+    if (st.playing){ st.playing = false; stopVoice(); syncUI(); }
+    else { st.playing = true; if (st.i >= st.steps.length - 1) show(0); else show(st.i + 1); }
+  };
+  $c('#cbVoice').onclick = () => { st.voice = !st.voice; LSset('voice', st.voice ? '1' : '0'); if (!st.voice) stopVoice(); syncUI(); };
+  $c('#cbTour').onclick = startTour;
+  const side = r => { box.classList.toggle('right', r); LSset('side', r ? 'r' : 'l'); };
+  side(LS('side') === 'r');
+  $c('#cbSide').onclick = () => side(!box.classList.contains('right'));
+  $c('#cbHide').onclick = () => { stopVoice(); box.classList.add('min'); focus(null); st.playing = false; syncUI(); };
+  $c('#cbBot').onclick = () => { if (box.classList.contains('min')){ box.classList.remove('min'); if (!st.steps.length) startTour(); } else startTour(); };
+  hb.onclick = () => { st.on = !st.on; LSset('on', st.on ? '1' : '0'); if (!st.on){ stopVoice(); endTour(); } else { box.classList.remove('min'); tell('', '¡Aquí estoy! Toca <b>Explícame el circuito</b> y te lo explico paso a paso.'); } syncUI(); };
+
+  // primer saludo (sin voz: el navegador no deja hablar hasta que el usuario toque algo)
+  tEl.innerHTML = '¡Hola! Soy <b>Chispa</b> 🤖. Te explico en voz alta cómo se conecta cada cosa. Arma un proyecto o toca <b>Explícame el circuito</b>.';
+  syncUI();
+
+  return {tell, startTour, endTour, stopVoice, st, speakable};
+})();
+
+window.__guide = GUIDE;
+/* --- enganches con el simulador --- */
+{
+  const _showPop = showPop;
+  showPop = function(i, more = 0, lead = ''){
+    _showPop(i, more, lead);
+    if (GUIDE.st.steps.length && GUIDE.st.playing && (i.lvl === 'ok' || i.lvl === 'info')) return;   // no interrumpe el recorrido con notas suaves
+    GUIDE.tell(`${lead}${LVL_TXT[i.lvl]}`, `${i.msg}. ${i.why || ''}`);
+  };
+  const _build = buildFromPlan;
+  buildFromPlan = function(plan){
+    const r = _build(plan);
+    if (GUIDE.st.on) setTimeout(() => GUIDE.startTour(), 400);
+    return r;
+  };
+  const _setStatus = setStatus;
+  let lastS = null;
+  setStatus = function(s){
+    _setStatus(s);
+    if (s === lastS) return; lastS = s;
+    if (s === 'run'){ GUIDE.endTour(); GUIDE.tell('¡Funcionando!', 'El Arduino está corriendo el programa. Mira la protoboard: los componentes hacen lo que dice el código. Para pararlo, pulsa <b>Detener</b>.'); }
+  };
+}
+
 })();
 </script>
 
