@@ -345,6 +345,7 @@ body{background-color:var(--bg);
 .iso .run::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 3px color-mix(in srgb,currentColor 25%,transparent)}
 .iso.running .run{display:flex}
 @media (max-width:640px){.iso{height:max(300px,88vw)}.iso .hint{display:none}}
+.iso .tip{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);padding:8px 14px;border-radius:8px;background:rgba(20,26,34,.86);color:#fff;font-size:13px;pointer-events:none;z-index:3}
 .iso .nogl{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--muted)}
 
 /* lecciones */
@@ -370,7 +371,7 @@ body{background-color:var(--bg);
   <header class="top">
     <div class="brand">
       <svg class="logo" viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="9" y="9" width="28" height="28" rx="3"/><rect x="16" y="16" width="14" height="14" rx="1.5" fill="var(--accent)" stroke="var(--accent)"/><path d="M15 9V3M23 9V3M31 9V3M15 43v-6M23 43v-6M31 43v-6M9 15H3M9 23H3M9 31H3M43 15h-6M43 23h-6M43 31h-6"/><circle cx="23" cy="23" r="2.6" fill="var(--surface)" stroke="none"/></svg>
-      <div><h1>Banco Arduino</h1><p class="tagline">Explora<i>·</i>Entiende<i>·</i>Construye</p><p class="sub">Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-1945</span></p></div>
+      <div><h1>Banco Arduino</h1><p class="tagline">Explora<i>·</i>Entiende<i>·</i>Construye</p><p class="sub">Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-2010</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -411,7 +412,7 @@ body{background-color:var(--bg);
           <span class="howto">Arrastra desde un pin del Arduino hasta un agujero. Toca un componente para verlo en 3D con sus conexiones (el botón, el interruptor y el PIR: doble clic).</span>
         </div>
         <div class="stage">
-        <div class="iso" id="iso"><canvas id="isoCanvas" tabindex="0" aria-label="Vista ilustrada del circuito. Arrastra para girar; toca una pieza para verla en 3D."></canvas><svg class="leads" id="isoLeads" aria-hidden="true"></svg><div class="labels" id="isoLabels"></div><span class="hint">ARRASTRA PARA GIRAR · TOCA UNA PIEZA</span><span class="run">Ejecutando</span><div class="bar" id="isoBar"></div></div>
+        <div class="iso" id="iso"><canvas id="isoCanvas" tabindex="0" aria-label="Vista ilustrada del circuito. Arrastra para moverla, clic derecho para girarla, Ctrl + rueda para acercar; toca una pieza para verla en 3D."></canvas><svg class="leads" id="isoLeads" aria-hidden="true"></svg><div class="labels" id="isoLabels"></div><span class="hint">ARRASTRA PARA MOVER · CLIC DERECHO PARA GIRAR · CTRL + RUEDA PARA ACERCAR</span><span class="tip" id="isoTip" hidden>Para acercar: Ctrl + rueda, pellizca o usa + y −</span><span class="run">Ejecutando</span><div class="bar" id="isoBar"></div></div>
         <div class="mat" id="mat">
           <div class="pop" id="pop" hidden role="status"></div>
           <div class="scene-wrap"><svg id="scene" viewBox="0 0 900 790" tabindex="0" role="application" aria-label="Protoboard y placa Arduino Uno. Arrastra cables entre pines y agujeros. Supr borra el cable o componente seleccionado."></svg></div>
@@ -6265,12 +6266,27 @@ const ISO = (() => {
     st.cam = new THREE.OrthographicCamera(-1, 1, 1, -1, -300, 600);
     // girar arrastrando, mover con clic derecho / Shift, clic sobre una pieza: vista 3D de esa pieza
     cv.addEventListener('contextmenu', e => e.preventDefault());
+    // un dedo o clic izquierdo: mover; clic derecho o Shift: girar; dos dedos: acercar y mover
+    const ptrs = new Map();
+    const two = () => { const [a, b] = [...ptrs.values()]; return {d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2}; };
     cv.addEventListener('pointerdown', e => {
-      st.drag = {x: e.clientX, y: e.clientY, rot: st.rotGoal, pan: {...st.pan}, mode: (e.button === 2 || e.button === 1 || e.shiftKey) ? 'pan' : 'rot', moved: false};
-      cv.setPointerCapture(e.pointerId); cv.classList.add('dragging');
+      ptrs.set(e.pointerId, {x: e.clientX, y: e.clientY});
+      try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+      cv.classList.add('dragging');
+      if (ptrs.size >= 2){ st.drag = {pinch: true, moved: true, ...two()}; return; }
+      st.drag = {x: e.clientX, y: e.clientY, rot: st.rotGoal, pan: {...st.pan}, mode: (e.button === 2 || e.shiftKey) ? 'rot' : 'pan', moved: false};
     });
     cv.addEventListener('pointermove', e => {
+      if (!ptrs.has(e.pointerId)) return;
+      ptrs.set(e.pointerId, {x: e.clientX, y: e.clientY});
       const d = st.drag; if (!d) return;
+      if (d.pinch){
+        if (ptrs.size < 2) return;
+        const t = two();
+        zoomAt(t.d / d.d, t.mx, t.my);
+        st.pan.x += t.mx - d.mx; st.pan.y += t.my - d.my;
+        Object.assign(d, t); st.need = 2; return;
+      }
       const dx = e.clientX - d.x, dy = e.clientY - d.y;
       if (Math.abs(dx) + Math.abs(dy) > 4) d.moved = true;
       if (!d.moved) return;
@@ -6279,11 +6295,20 @@ const ISO = (() => {
       st.need = 2;
     });
     const up = e => {
-      const d = st.drag; st.drag = null; cv.classList.remove('dragging');
+      ptrs.delete(e.pointerId);
+      const d = st.drag;
+      if (d && d.pinch){ if (!ptrs.size){ st.drag = null; cv.classList.remove('dragging'); } return; }
+      st.drag = null; cv.classList.remove('dragging');
       if (d && !d.moved && e.type === 'pointerup'){ const c = pick(e); if (c && typeof open3D === 'function') open3D(c); }
     };
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
-    cv.addEventListener('wheel', e => { if (!(e.ctrlKey || e.metaKey)) return; e.preventDefault(); zoomBy(e.deltaY > 0 ? 0.9 : 1.1); }, {passive: false});
+    let tipT = 0;
+    cv.addEventListener('wheel', e => {
+      if (!(e.ctrlKey || e.metaKey)){   // la rueda sola sigue moviendo la página
+        const tip = $('#isoTip'); tip.hidden = false; clearTimeout(tipT); tipT = setTimeout(() => tip.hidden = true, 1600); return;
+      }
+      e.preventDefault(); zoomAt(Math.exp(-Math.max(-60, Math.min(60, e.deltaY)) * 0.003), e.clientX, e.clientY);
+    }, {passive: false});
     cv.addEventListener('dblclick', () => home());
     return true;
   }
@@ -6400,6 +6425,7 @@ const ISO = (() => {
       proj.copy(k.p).project(st.cam);
       k.ax = (proj.x + 1) / 2 * W; k.ay = (1 - proj.y) / 2 * H;
       k.h = k.el.offsetHeight || 40; k.w = k.el.offsetWidth || 168;
+      k.off = k.ax < 4 || k.ay < 4 || k.ax > W - 4 || k.ay > H - 4;
     });
     const HL = hulls(W, H), top = 30, bot = H - 54, m = 10;
     const cover = (x, y, w, h) => { let n = 0; for (let i = 0; i <= 4; i++) for (let j = 0; j <= 2; j++){ const px = x + w * i / 4, py = y + h * j / 2; if (HL.some(P => inPoly(px, py, P))) n++; } return n / 15; };
@@ -6407,6 +6433,7 @@ const ISO = (() => {
     const xs = [m, W * 0.27, W * 0.5, W * 0.73, W - m], ys = [top, H * 0.3, H * 0.5, H * 0.7, bot];
     const placed = [], cand = [];
     st.cos.forEach((k, ki) => {
+      if (k.off) return;
       const opts = [];
       xs.forEach((cx, xi) => ys.forEach((cy, yi) => {
         if (xi > 0 && xi < 4 && yi > 0 && yi < 4) return;                    // solo en el borde
@@ -6469,7 +6496,7 @@ const ISO = (() => {
     // encuadre: proyecta las 8 esquinas de la caja y ajusta el rectángulo visible
     const inv = cam.matrixWorldInverse, b = st.bb; let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; const v = new THREE.Vector3();
     for (const X of [b.min.x, b.max.x]) for (const Y of [b.min.y, b.max.y]) for (const Z of [b.min.z, b.max.z]){ v.set(X, Y, Z).applyMatrix4(inv); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); }
-    const mx = st.cos.length && W >= 720 ? 70 : 14, myT = 30, myB = 52;
+    const mx = st.cos.length && W >= 720 ? 70 : 14, myT = 30, myB = 30 + 2 * OFF;
     const k = Math.max((x1 - x0) / Math.max(80, W - 2 * mx), (y1 - y0) / Math.max(80, H - myT - myB)) / st.zoom;
     const cx = (x0 + x1) / 2 - st.pan.x * k, cy = (y0 + y1) / 2 + st.pan.y * k + (myB - myT) / 2 * k;
     cam.left = cx - W / 2 * k; cam.right = cx + W / 2 * k; cam.top = cy + H / 2 * k; cam.bottom = cy - H / 2 * k;
@@ -6506,7 +6533,17 @@ const ISO = (() => {
   function showNoGL(){ if (!box3.querySelector('.nogl')){ const d = document.createElement('div'); d.className = 'nogl'; d.textContent = 'Este computador no puede mostrar la vista ilustrada (WebGL). Usa la pestaña «Cablear».'; box3.appendChild(d); } }
 
   /* ---------- controles ---------- */
-  function zoomBy(f){ st.zoomGoal = Math.max(0.5, Math.min(4, st.zoomGoal * f)); st.need = 2; }
+  // acerca dejando quieto el punto que está bajo el puntero (o el centro, con los botones + y −)
+  const OFF = 11;   // (myB − myT) / 2 en render()
+  function zoomAt(f, X, Y){
+    const nz = Math.max(0.5, Math.min(6, st.zoom * f)); f = nz / st.zoom; if (Math.abs(f - 1) < 1e-4) return;
+    let dx = 0, dy = 0;
+    if (X != null){ const rc = cv.getBoundingClientRect(); dx = X - rc.left - rc.width / 2; dy = Y - rc.top - rc.height / 2; }
+    st.pan.x = dx - (dx - st.pan.x) * f;
+    st.pan.y = (st.pan.y + OFF - dy) * f - OFF + dy;
+    st.zoom = st.zoomGoal = nz; st.need = 2;
+  }
+  function zoomBy(f){ zoomAt(f); }
   function home(){ st.rotGoal = Math.round((st.rotGoal - Math.PI / 4) / (Math.PI * 2)) * Math.PI * 2 + Math.PI / 4; st.zoomGoal = 1; st.pan = {x: 0, y: 0}; st.need = 2; }
   const BAR = [
     ['isoL', 'Girar a la izquierda', SV('<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>'), () => { st.rotGoal += Math.PI / 2; st.need = 2; }],
