@@ -3779,6 +3779,7 @@ function buildFromPlan(plan){
   renderParts(); renderCards(); drawWires(); review(false); prevKeys = new Set(issues.map(i => i.lvl + '|' + i.cid + '|' + i.msg));
   save();
   const errs = issues.filter(i => i.lvl === 'err' || i.lvl === 'warn');
+  try { if (ISO.st.view === 'hub') ISO.setView('iso'); } catch (e) {}
   if (problems.length) showPop({lvl:'warn', msg:'Armé el circuito, pero revisa esto', why: problems.join(' ')});
   else if (errs.length) showPop(errs[0], errs.length - 1);
   else showPop({lvl:'ok', msg:'Circuito armado y bien conectado', why:'Sigue los cables para ver qué va en cada pata. Pulsa <b>Ejecutar</b> para probar el código que preparé con estos mismos pines.'});
@@ -5786,6 +5787,7 @@ function loadExample(i){
   pop.hidden = true;
   renderParts(); renderCards(); drawWires(); review(false); prevKeys = new Set(issues.map(i => i.lvl + '|' + i.cid + '|' + i.msg));
   renderGutter(); save();
+  try { if (ISO.st.view === 'hub') ISO.setView('iso'); } catch (e) {}
 }
 exSel.onchange = () => {
   if (exSel.value === '') return;
@@ -6655,6 +6657,7 @@ const MIS = (() => {
     renderParts(); renderCards(); drawWires(); review(false); prevKeys = new Set(issues.map(i => i.lvl + '|' + i.cid + '|' + i.msg));
     save();
     toast(`⭐ Proyecto cargado: <b>${esc(p.titulo)}</b>. Pulsa Ejecutar para probarlo.`);
+    try { if (ISO.st.view === 'hub') ISO.setView('iso'); } catch (e) {}
     return true;
   }
   const compSummary = p => { const n = {}; p.comps.forEach(c => { const k = c.type === 'led' ? 'LED ' + (c.color || '') : TYPES[c.type].name; n[k] = (n[k] || 0) + 1; }); return Object.entries(n).map(([k, v]) => `<span>${v} × ${esc(k)}</span>`).join(''); };
