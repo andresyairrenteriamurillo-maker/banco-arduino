@@ -5,7 +5,7 @@ self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c =>
 self.addEventListener('activate', e => { e.waitUntil(self.clients.claim()); });
 self.addEventListener('fetch', e => {
   const req = e.request;
-  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  if (req.method !== 'GET' || new URL(req.url).origin !== location.origin || /\.pdf(\?|$)/.test(req.url)) return;
   // primero intenta la versión nueva de GitHub; si no hay internet, usa la guardada
   e.respondWith(fetch(req, {cache: 'no-store'}).then(res => {
     if (res.ok){ const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
