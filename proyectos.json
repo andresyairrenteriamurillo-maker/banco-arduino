@@ -1,0 +1,107 @@
+[
+ {
+  "titulo": "Medidor de corriente",
+  "keys": [
+   "medidor de corriente",
+   "amperimetro",
+   "sensor de corriente",
+   "consumo electrico"
+  ],
+  "idea": "Mide la corriente que pasa por un cable con el sensor ACS712 y avisa con un LED y un pitido si supera 2 A.",
+  "notas": [
+   "La carga que quieres medir se conecta a los dos tornillos azules del sensor, en serie con el cable.",
+   "Usa el modelo de 5 A (185 mV por amperio); el de 20 A usa 0.100 y el de 30 A usa 0.066.",
+   "Nunca midas la corriente de un enchufe de 110 V con los estudiantes."
+  ],
+  "code": "// Medidor de corriente con el sensor ACS712 (modelo de 5 A)\nconst int SENSOR = A0;        // OUT del sensor\nconst int ZUMBADOR = 8;\nconst int LED_ALERTA = 9;\nconst float SENSIBILIDAD = 0.185;   // voltios por cada amperio\nconst float LIMITE = 2.0;           // amperios para dar la alarma\n\nvoid setup() {\n  Serial.begin(9600);\n  pinMode(ZUMBADOR, OUTPUT);\n  pinMode(LED_ALERTA, OUTPUT);\n}\n\nvoid loop() {\n  int lectura = analogRead(SENSOR);          // 0 a 1023 (512 = sin corriente)\n  float voltaje = lectura * 5.0 / 1023.0;\n  float corriente = (voltaje - 2.5) / SENSIBILIDAD;\n\n  Serial.print(\"Corriente: \");\n  Serial.print(corriente, 2);\n  Serial.println(\" A\");\n\n  if (abs(corriente) > LIMITE) {\n    digitalWrite(LED_ALERTA, HIGH);\n    tone(ZUMBADOR, 1500, 150);\n  } else {\n    digitalWrite(LED_ALERTA, LOW);\n  }\n  delay(500);\n}\n",
+  "comps": [
+   {
+    "id": 1,
+    "type": "acs712",
+    "bx": 2,
+    "by": 6,
+    "value": 1200,
+    "burnt": false
+   },
+   {
+    "id": 2,
+    "type": "buzzer",
+    "bx": 7,
+    "by": 6,
+    "burnt": false
+   },
+   {
+    "id": 3,
+    "type": "led",
+    "bx": 14,
+    "by": 6,
+    "color": "rojo",
+    "burnt": false
+   },
+   {
+    "id": 4,
+    "type": "resistor",
+    "bx": 11,
+    "by": 8,
+    "ohm": "220 Ω",
+    "burnt": false
+   }
+  ],
+  "wires": [
+   {
+    "id": 1,
+    "a": "P:5V",
+    "b": "bp:2",
+    "color": "rojo"
+   },
+   {
+    "id": 2,
+    "a": "9:2",
+    "b": "bp:3",
+    "color": "rojo"
+   },
+   {
+    "id": 3,
+    "a": "P:A0",
+    "b": "9:3",
+    "color": "naranja"
+   },
+   {
+    "id": 4,
+    "a": "P:GND1",
+    "b": "bn:14",
+    "color": "negro"
+   },
+   {
+    "id": 5,
+    "a": "9:4",
+    "b": "bn:4",
+    "color": "negro"
+   },
+   {
+    "id": 6,
+    "a": "P:D8",
+    "b": "9:7",
+    "color": "amarillo"
+   },
+   {
+    "id": 7,
+    "a": "9:9",
+    "b": "bn:9",
+    "color": "negro"
+   },
+   {
+    "id": 8,
+    "a": "P:D9",
+    "b": "9:11",
+    "color": "azul"
+   },
+   {
+    "id": 9,
+    "a": "9:15",
+    "b": "bn:15",
+    "color": "negro"
+   }
+  ]
+ }
+]

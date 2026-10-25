@@ -8,3 +8,4 @@ En Edge: menú **⋯ → Aplicaciones → Instalar este sitio como una aplicaci�
 
 - `index.html`: el simulador como página web (GitHub Pages), con modo sin conexión.
 - `Banco-Arduino.html`: el mismo simulador en un solo archivo, para abrir con doble clic sin internet.
+- `proyectos.json`: los proyectos propios (⭐ Mis proyectos). La versión en línea los carga sola. Para agregar uno: créalo en el simulador, pulsa **⭐ Mis proyectos → Exportar** y sube el archivo aquí con **Add file → Upload files**, reemplazando el anterior.

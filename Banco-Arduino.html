@@ -366,6 +366,35 @@ body.fs .panel.fsp .lcard .th{width:36px;height:36px}
 body.fs #confirm{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:58;margin:0;box-shadow:0 8px 30px rgba(0,0,0,.25);width:min(640px,calc(100vw - 24px))}
 body.fs .chispa{bottom:96px}
 @media (max-width:640px){#fsBtn span{display:none}}
+
+/* Mis proyectos */
+.mymodal{position:fixed;inset:0;z-index:65;background:rgba(8,14,12,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+.mycard{background:var(--surface);border:1px solid var(--line);border-radius:12px;width:min(1000px,100%);max-height:100%;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.mybody{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);overflow:auto;min-height:0}
+@media (max-width:760px){.mybody{grid-template-columns:minmax(0,1fr)}}
+.mybody section{padding:14px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.mybody section+section{border-left:1px solid var(--line)}
+@media (max-width:760px){.mybody section+section{border-left:0;border-top:1px solid var(--line)}}
+.mybody h3{margin:0;font:600 15px var(--f-disp);letter-spacing:.02em}
+.mybody label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600}
+.mybody label small{font-weight:400;color:var(--muted)}
+.mybody input,.mybody textarea{border:1.5px solid var(--line);background:var(--surface-2);border-radius:7px;padding:7px 9px;font:14px var(--f-body);color:var(--ink);resize:vertical}
+.mybody input:focus,.mybody textarea:focus{outline:none;border-color:var(--accent)}
+.mybody .acts{display:flex;flex-wrap:wrap;gap:8px}
+.mybody .msg{margin:0;font-size:13px;color:var(--ok);min-height:1.2em}
+.mybody .hint{margin:0}
+.mislist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:46vh;overflow:auto}
+.mislist li{border:1px solid var(--line);border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:4px}
+.mislist li.empty{color:var(--muted);font-size:13px}
+.mislist .mt{display:flex;gap:8px;align-items:center}
+.mislist small{color:var(--muted);font-size:12px}
+.mislist .src{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;padding:1px 6px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
+.mislist .src.web{color:var(--accent)}
+.mislist .ma{display:flex;gap:6px;flex-wrap:wrap}
+.misnotes{margin:0;padding-left:18px;font-size:13px;color:var(--muted);line-height:1.5}
+#misChip{border-style:solid;border-color:var(--accent);color:var(--accent);font-weight:600}
+.mtoast{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:80;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100vw - 32px)}
+.lcard.mine .t::before{content:"★ ";color:#E0A21B}
 /* lecciones */
 .lessons{border-top:1px solid var(--line);padding:10px 0 12px;background:var(--surface)}
 .lessons .eyebrow{display:block;padding:0 14px 8px}
@@ -389,7 +418,7 @@ body.fs .chispa{bottom:96px}
   <header class="top">
     <div class="brand">
       <svg class="logo" viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="9" y="9" width="28" height="28" rx="3"/><rect x="16" y="16" width="14" height="14" rx="1.5" fill="var(--accent)" stroke="var(--accent)"/><path d="M15 9V3M23 9V3M31 9V3M15 43v-6M23 43v-6M31 43v-6M9 15H3M9 23H3M9 31H3M43 15h-6M43 23h-6M43 31h-6"/><circle cx="23" cy="23" r="2.6" fill="var(--surface)" stroke="none"/></svg>
-      <div><h1>Banco Arduino</h1><p class="tagline">Explora<i>·</i>Entiende<i>·</i>Construye</p><p class="sub">Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-2100</span></p></div>
+      <div><h1>Banco Arduino</h1><p class="tagline">Explora<i>·</i>Entiende<i>·</i>Construye</p><p class="sub">Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-2150</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -413,7 +442,7 @@ body.fs .chispa{bottom:96px}
           <button class="btn small" id="fsBtn" type="button" aria-pressed="false" title="Trabajar en pantalla completa (Esc para salir)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg><span>Pantalla completa</span></button>
           <button class="btn small primary" id="all3d">🧊 Ver en 3D</button>
           <button class="btn small" id="saveProj">Guardar proyecto</button>
-          <button class="btn small" id="openProj">Abrir proyecto</button><input type="file" id="projFile" accept=".json,application/json" hidden>
+          <button class="btn small" id="openProj">Abrir proyecto</button><button class="btn small" id="misBtn" type="button">⭐ Mis proyectos</button><input type="file" id="projFile" accept=".json,application/json" hidden>
           <button class="btn small" id="mute" aria-pressed="false">🔊 Sonido</button>
           <button class="btn small" id="clearWires">Quitar cables</button>
           <button class="btn small" id="clearAll">Vaciar todo</button></div>
@@ -470,6 +499,29 @@ body.fs .chispa{bottom:96px}
         <pre class="serial" id="serial" aria-live="polite"></pre>
         <div class="serial-in" id="sform"><input id="sin" placeholder="Escribe y pulsa Enviar (llega a Serial.read)"><button class="btn small" type="button" id="sbtn">Enviar</button></div>
       </section>
+    </div>
+  </div>
+  <div class="mymodal" id="misModal" hidden role="dialog" aria-modal="true" aria-labelledby="misTitle">
+    <div class="mycard">
+      <div class="v3head"><h2 id="misTitle">⭐ Mis proyectos</h2><span class="sp" style="flex:1"></span><button class="btn small" id="misClose" type="button">Cerrar ✕</button></div>
+      <div class="mybody">
+        <section>
+          <h3>Guardar el circuito actual como proyecto</h3>
+          <p class="hint">Se guardan los componentes, los cables y el código que tienes ahora en la protoboard.</p>
+          <label>Nombre del proyecto<input id="misName" placeholder="Ej: Medidor de corriente" autocomplete="off"></label>
+          <label>Palabras clave <small>separadas por comas: con ellas el asistente lo encuentra</small><input id="misKeys" placeholder="medidor de corriente, amperimetro, consumo" autocomplete="off"></label>
+          <label>¿Qué hace el proyecto?<textarea id="misIdea" rows="2" placeholder="Mide la corriente que pasa por un cable y avisa si supera 2 A."></textarea></label>
+          <label>Notas para armarlo en la vida real <small>una por línea</small><textarea id="misNotes" rows="3"></textarea></label>
+          <div class="acts"><button class="btn primary" id="misSave" type="button">Guardar en Mis proyectos</button></div>
+          <p class="msg" id="misMsg" role="status"></p>
+        </section>
+        <section>
+          <h3>Proyectos guardados <span id="misCount"></span></h3>
+          <ul class="mislist" id="misList"></ul>
+          <div class="acts"><button class="btn" id="misExport" type="button">⬇ Exportar (proyectos.json)</button><button class="btn" id="misImport" type="button">⬆ Importar archivo</button><input type="file" id="misFile" accept=".json,application/json" hidden></div>
+          <p class="hint">Para llevarlos a otros computadores: exporta aquí y usa «Importar archivo» allá. Si subes <b>proyectos.json</b> a tu repositorio de GitHub, la versión en línea los carga sola.</p>
+        </section>
+      </div>
     </div>
   </div>
   <div class="v3modal" id="v3modal" hidden role="dialog" aria-modal="true" aria-labelledby="v3title">
@@ -552,6 +604,8 @@ const TYPES = {
             legs:[{dx:0,id:'x',l:'1',n:'pata 1'},{dx:1,id:'y',l:'2',n:'pata 2'}]},
   lm35:    {name:'Sensor LM35', tag:'Sensor', desc:'Temperatura, 10 mV por °C', keys:['temperatura','lm35','termometro','calor','sensor de temperatura'], fp:[0,2],
             legs:[{dx:0,id:'v',l:'VCC',n:'VCC'},{dx:1,id:'o',l:'OUT',n:'OUT'},{dx:2,id:'g',l:'GND',n:'GND'}]},
+  acs712:  {name:'Sensor de corriente ACS712', tag:'Sensor', desc:'Mide de −5 A a 5 A: OUT da 2,5 V sin corriente y sube o baja 0,185 V por amperio', keys:['corriente','acs712','acs 712','amperimetro','medidor de corriente','sensor de corriente','amperios','consumo'], fp:[-1,3],
+            legs:[{dx:0,id:'v',l:'VCC',n:'VCC'},{dx:1,id:'o',l:'OUT',n:'OUT'},{dx:2,id:'g',l:'GND',n:'GND'}]},
   pir:     {name:'Sensor PIR', tag:'Sensor', desc:'Detector de movimiento, salida digital', keys:['pir','movimiento','presencia','alarma','sensor de movimiento'], fp:[-1,3],
             legs:[{dx:0,id:'v',l:'VCC',n:'VCC'},{dx:1,id:'o',l:'OUT',n:'OUT'},{dx:2,id:'g',l:'GND',n:'GND'}]},
   sonar:   {name:'Ultrasónico HC-SR04', tag:'Sensor', desc:'Mide distancia de 2 a 400 cm', keys:['ultrasonico','distancia','hc-sr04','hcsr04','sonar','proximidad'], fp:[-1,4],
@@ -577,7 +631,7 @@ const TYPES = {
   supply12:{name:'Fuente 12 V', tag:'Energía', desc:'Adaptador de 12 V / 2 A para bombas y motores de 12 V', keys:['fuente 12v','fuente de 12','adaptador 12','12 voltios','bateria 12'], fp:[-1,2],
             legs:[{dx:0,id:'p',l:'+',n:'+12V'},{dx:1,id:'n',l:'−',n:'− (GND de 12 V)'}]},
 };
-const ORDER = ['battery','oled','led','resistor','rgb','button','switch','pot','ldr','lm35','pir','sonar','buzzer','servo','motor','relay','pump12','supply12','supply','pca9685','ds1302'];
+const ORDER = ['battery','oled','led','resistor','rgb','button','switch','pot','ldr','lm35','acs712','pir','sonar','buzzer','servo','motor','relay','pump12','supply12','supply','pca9685','ds1302'];
 const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
 
 /* ---------------- Escena ---------------- */
@@ -690,6 +744,7 @@ function makeComp(type, o = {}){
   if (type === 'pot') c.value ??= 512;
   if (type === 'ldr') c.value ??= 70;
   if (type === 'lm35') c.value ??= 24;
+  if (type === 'acs712') c.value ??= 1200;   // miliamperios
   if (type === 'sonar') c.value ??= 120;
   if (type === 'resistor') c.ohm ??= '220 Ω';
   if (type === 'switch' || type === 'pir') c.on ??= false;
@@ -874,6 +929,7 @@ const EVAL = {
     c.m = {pin: p, pd: !!(pd && pd.dir === 'down'), ok: vi >= 0};
   },
   lm35(c, N){ const ok = power(c, N.v, N.g); const p = signal(c, N.o, 'OUT', true); if (ok && p != null) iss('ok', 'LM35 bien conectado', `VCC a 5V, GND a GND y OUT en ${pinName(p)}.`); c.m = {pin: p, ok}; },
+  acs712(c, N){ const ok = power(c, N.v, N.g); const p = signal(c, N.o, 'OUT', true); if (ok && p != null) iss('ok', 'Sensor de corriente bien conectado', `VCC a 5V, GND a GND y OUT en ${pinName(p)}. Sin corriente, analogRead da cerca de 512.`); c.m = {pin: p, ok}; },
   pir(c, N){ const ok = power(c, N.v, N.g); const p = signal(c, N.o, 'OUT', false); if (ok && p != null) iss('ok', 'Sensor PIR bien conectado', `VCC a 5V, GND a GND y OUT en ${pinName(p)}.`); c.m = {pin: p, ok}; },
   sonar(c, N){
     const ok = power(c, N.v, N.g); const t = signal(c, N.t, 'TRIG', false), e = signal(c, N.e, 'ECHO', false);
@@ -1069,6 +1125,12 @@ function partSVG(c){
       s = `${leg(0,0,12,-12)}${leg(22,0,22,-12)}${leg(44,0,32,-12)}<path d="M6 -12H38V-28a16 14 0 0 0 -32 0z" fill="#1D1F21"/>
         <text x="22" y="-18" text-anchor="middle" fill="#cfd4d6" style="font:600 7px var(--f-mono)">LM35</text>`;
       box = [-12, -48, 68, 18]; break;
+    case 'acs712':
+      s = `${leg(0,0,0,-10)}${leg(22,0,22,-10)}${leg(44,0,44,-10)}<rect x="-14" y="-66" width="72" height="56" rx="3" fill="#C62828"/>
+        <rect x="-4" y="-64" width="52" height="16" rx="2" fill="#2F6BE0"/><circle cx="9" cy="-56" r="5" fill="#C9CED4"/><circle cx="35" cy="-56" r="5" fill="#C9CED4"/><path d="M5 -56h8M31 -56h8" stroke="#555" stroke-width="1.5"/>
+        <rect x="12" y="-42" width="20" height="12" rx="1" fill="#1D1F21"/>
+        <text x="22" y="-17" text-anchor="middle" fill="#fff" style="font:700 7px var(--f-mono)">ACS712</text>`;
+      box = [-18, -70, 80, 18]; break;
     case 'pir':
       s = `${leg(0,0,0,-10)}${leg(22,0,22,-10)}${leg(44,0,44,-10)}<rect x="-14" y="-70" width="72" height="60" rx="3" fill="#2E7D32"/>
         <circle cx="22" cy="-40" r="23" fill="#F2F1EB" stroke="#d0cfc6"/><path d="M5 -40h34M22 -57v34M10 -52l24 24M34 -52l-24 24" stroke="#dcdbd2" stroke-width="1.2"/>
@@ -1326,6 +1388,7 @@ function cardCtl(c){
     case 'pot': return `<input type="range" min="0" max="1023" value="${c.value}" data-k="value" aria-label="Posición del potenciómetro">`;
     case 'ldr': return `<label>Luz ambiente</label><input type="range" min="0" max="100" value="${c.value}" data-k="value" aria-label="Nivel de luz">`;
     case 'lm35': return `<label>Temperatura</label><input type="range" min="-10" max="110" value="${c.value}" data-k="value" aria-label="Temperatura">`;
+    case 'acs712': return `<label>Corriente que pasa</label><input type="range" min="-5000" max="5000" step="50" value="${c.value}" data-k="value" aria-label="Corriente en miliamperios">`;
     case 'pir': return `<label>Hay movimiento<input type="checkbox" data-k="on"${c.on?' checked':''}></label>`;
     case 'sonar': return `<label>Distancia del objeto</label><input type="range" min="2" max="400" value="${c.value}" data-k="value" aria-label="Distancia al objeto">`;
     case 'battery': return `<label>Voltaje<select data-k="volt">${['3.3','3.7'].map(v => `<option value="${v}"${String(+c.volt || 3.3) === v ? ' selected' : ''}>${v} V${v === '3.7' ? ' (18650 / LiPo)' : ''}</option>`).join('')}</select></label><label>Probar sin USB<input type="checkbox" data-k="nousb"${c.nousb ? ' checked' : ''}></label><div class="note">Sin USB, el Arduino solo recibe lo que le llega por sus pines de energía.</div>`;
@@ -1568,6 +1631,7 @@ const ICON = {
   pot:'<circle cx="12" cy="12" r="9" fill="#A9B0B5"/><circle cx="12" cy="12" r="6" fill="#2c3135"/><path d="M12 12V7" stroke="#fff" stroke-width="2"/>',
   ldr:'<circle cx="12" cy="12" r="8" fill="#D8C27E"/><path d="M7 10h9a1.5 1.5 0 0 1 0 3H8a1.5 1.5 0 0 0 0 3h9" fill="none" stroke="#B3452F" stroke-width="1.5"/>',
   lm35:'<path d="M5 18H19V11a7 7 0 0 0-14 0z" fill="#1D1F21"/>',
+  acs712:'<rect x="3" y="5" width="18" height="14" rx="2" fill="#C62828"/><rect x="6" y="6" width="12" height="4" fill="#2F6BE0"/><rect x="9" y="12" width="6" height="4" fill="#1D1F21"/>',
   pir:'<rect x="2" y="2" width="20" height="20" rx="2" fill="#2E7D32"/><circle cx="12" cy="12" r="7" fill="#F2F1EB"/>',
   sonar:'<rect x="1" y="5" width="22" height="14" rx="2" fill="#1B5DAA"/><circle cx="7" cy="12" r="4.5" fill="#A9B0B5"/><circle cx="17" cy="12" r="4.5" fill="#A9B0B5"/>',
   buzzer:'<circle cx="12" cy="12" r="9" fill="#1A1C1E"/><circle cx="12" cy="12" r="2" fill="#000"/>',
@@ -1630,6 +1694,7 @@ const HOWTO = {
   pot:'Pata 1 al riel −, pata 2 al riel + y la pata central S a A0–A5.',
   ldr:'Una pata a 5V, la otra a A0–A5, y desde esa columna una resistencia de 10 kΩ hacia GND.',
   lm35:'VCC al riel +, GND al riel − y OUT a una entrada analógica (A0–A5).',
+  acs712:'VCC al riel +, GND al riel − y OUT a una entrada analógica (A0–A5). La carga que quieres medir pasa por los dos tornillos azules.',
   pir:'VCC al riel +, GND al riel − y OUT a un pin digital.',
   sonar:'VCC al riel +, GND al riel −, TRIG y ECHO a dos pines digitales distintos.',
   buzzer:'La pata + a un pin digital y la − al riel − (GND).',
@@ -2885,6 +2950,7 @@ const ROLE = {
   pot:{p1:{to:'gnd'}, w:{to:'pin', kind:'analog'}, p2:{to:'5v'}},
   ldr:{x:{to:'5v'}, y:{to:'pin', kind:'analog', pd:10000}},
   lm35:{v:{to:'5v'}, o:{to:'pin', kind:'analog'}, g:{to:'gnd'}},
+  acs712:{v:{to:'5v'}, o:{to:'pin', kind:'analog'}, g:{to:'gnd'}},
   pir:{v:{to:'5v'}, o:{to:'pin', kind:'in'}, g:{to:'gnd'}},
   sonar:{v:{to:'5v'}, t:{to:'pin', kind:'trig'}, e:{to:'pin', kind:'echo'}, g:{to:'gnd'}},
   buzzer:{p:{to:'pin', kind:'buzz'}, n:{to:'gnd'}},
@@ -3003,7 +3069,7 @@ const LEGTXT = {
   button:{x:'Pata 1', y:'Pata 2'}, switch:{x:'Pata 1', y:'Pata 2'},
   pot:{p1:'Extremo 1 (izquierda)', w:'Centro S (cursor)', p2:'Extremo 2 (derecha)'},
   ldr:{x:'Pata 1', y:'Pata 2'},
-  lm35:{v:'VCC', o:'OUT (señal)', g:'GND'}, pir:{v:'VCC', o:'OUT (señal)', g:'GND'},
+  lm35:{v:'VCC', o:'OUT (señal)', g:'GND'}, acs712:{v:'VCC', o:'OUT (señal)', g:'GND'}, pir:{v:'VCC', o:'OUT (señal)', g:'GND'},
   sonar:{v:'VCC', t:'TRIG', e:'ECHO', g:'GND'},
   buzzer:{p:'Pata +', n:'Pata −'}, motor:{p:'Pata +', n:'Pata −'},
   servo:{g:'Cable café (GND)', v:'Cable rojo (5V)', s:'Cable naranja (señal)'},
@@ -3233,7 +3299,7 @@ function autoWireUser(c){
 
 
 /* ================= Energía, fuentes y controladores ================= */
-const CURRENT = {led:[15,15], rgb:[45,45], buzzer:[30,30], servo:[150,650], motor:[200,1000], sonar:[15,15], pir:[1,1], lm35:[1,1], pot:[1,1], ldr:[1,1], button:[0,0], switch:[0,0], resistor:[0,0], supply:[0,0], relay:[70,70], pump12:[0,0], supply12:[0,0], pca9685:[10,10], ds1302:[1,1], oled:[20,20], battery:[0,0]};
+const CURRENT = {led:[15,15], rgb:[45,45], buzzer:[30,30], servo:[150,650], motor:[200,1000], sonar:[15,15], pir:[1,1], lm35:[1,1], acs712:[10,10], pot:[1,1], ldr:[1,1], button:[0,0], switch:[0,0], resistor:[0,0], supply:[0,0], relay:[70,70], pump12:[0,0], supply12:[0,0], pca9685:[10,10], ds1302:[1,1], oled:[20,20], battery:[0,0]};
 function powerAdvice(counts, flags = {}){
   const n = t => counts[t] || 0, s = n('servo'), mo = n('motor');
   let run = 50, peak = 50;
@@ -3306,6 +3372,7 @@ const PARSE = [
   ['sonar', ['ultrasonicos?','sensor(?:es)? de distancia','distancias?','proximidad','hc-?sr04','obstaculos?','objetos?','parqueo','estacionamiento']],
   ['pir', ['pir','movimiento','presencia']],
   ['lm35', ['temperaturas?','lm35','termometros?','calor','grados']],
+  ['acs712', ['sensor(?:es)? de corriente','medidor(?:es)? de corriente','corrientes?','acs ?712','amperimetros?','amperios?']],
   ['pot', ['potenciometros?','perillas?']],
   ['button', ['botones','boton','pulsador(?:es)?','push']],
   ['switch', ['interruptor(?:es)?','switch(?:es)?']],
@@ -3346,7 +3413,7 @@ function parseRequest(text){
   }
   const has = ty => items.some(i => i.type === ty);
   const nServ = () => items.filter(i => i.type === 'servo').length;
-  const sensor = ['button','switch','pir','sonar','lm35','ldr','pot'].some(has);
+  const sensor = ['button','switch','pir','sonar','lm35','acs712','ldr','pot'].some(has);
   if (flags.carro){
     if (!has('sonar') && !has('pir')) items.unshift({type:'sonar'});
     const nm = items.filter(i => i.type === 'motor').length;
@@ -3387,6 +3454,7 @@ const AI_CATALOG = `Catálogo (usa SOLO estos "tipo"; las patas que van a un pin
 - pot: potenciómetro. Pata "w" a A0–A5.
 - ldr: fotorresistencia con 10 kΩ a GND (más luz = valor más alto). Pata "y" a A0–A5.
 - lm35: sensor de temperatura (°C = analogRead*500.0/1023.0). Pata "o" a A0–A5.
+- acs712: sensor de corriente de 5 A (amperios = (analogRead*5.0/1023.0 - 2.5)/0.185). Pata "o" a A0–A5.
 - pir: sensor de movimiento, HIGH si detecta. Pata "o" a un pin digital.
 - sonar: ultrasónico HC-SR04. Patas "t" (TRIG) y "e" (ECHO) a pines digitales; distancia en cm = pulseIn(ECHO, HIGH)/58.
 - buzzer: zumbador, tone()/noTone(). Pata "p" al pin.
@@ -3523,7 +3591,7 @@ function makePlan(text, ai = null){
     return;
   }
   // pines
-  const analogIn = items.some(i => ['pot','ldr','lm35','sonar'].includes(i.type));
+  const analogIn = items.some(i => ['pot','ldr','lm35','acs712','sonar'].includes(i.type));
   const reserved = new Set(), used = new Set();   // «Armar» reemplaza el circuito, así que todos los pines quedan libres
   const plan = {text, flags, items: []};
   const counters = {};
@@ -3549,7 +3617,7 @@ function makePlan(text, ai = null){
   }
   // nombres para el código
   const total = {}; plan.items.forEach(i => total[i.type] = (total[i.type] || 0) + 1);
-  const BASE = {battery:'', oled:'', pca9685:'', ds1302:'', relay:'RELE', pump12:'BOMBA', supply12:'FUENTE12', supply:'FUENTE', led:'LED', rgb:'RGB', button:'BOTON', switch:'INTERRUPTOR', pot:'POT', ldr:'LDR', lm35:'SENSOR_TEMP', pir:'PIR', sonar:'', buzzer:'ZUMBADOR', servo:'SERVO', motor:'MOTOR'};
+  const BASE = {battery:'', oled:'', pca9685:'', ds1302:'', relay:'RELE', pump12:'BOMBA', supply12:'FUENTE12', supply:'FUENTE', led:'LED', rgb:'RGB', button:'BOTON', switch:'INTERRUPTOR', pot:'POT', ldr:'LDR', lm35:'SENSOR_TEMP', acs712:'SENSOR_CORRIENTE', pir:'PIR', sonar:'', buzzer:'ZUMBADOR', servo:'SERVO', motor:'MOTOR'};
   const colorCount = {}; plan.items.forEach(i => { if (i.type === 'led') colorCount[i.color] = (colorCount[i.color] || 0) + 1; });
   plan.items.forEach(i => {
     if (i.type === 'led') i.sym = colorCount[i.color] === 1 && total.led > 1 ? 'LED_' + i.color.toUpperCase() : total.led > 1 ? `LED${i.n}` : 'LED';
@@ -3708,6 +3776,8 @@ function genCode(plan){
   if (pots.length){ L.push(`  int nivel = analogRead(${pots[0].sym});        // 0 a 1023`); L.push('  Serial.print("Potenciómetro: "); Serial.println(nivel);'); level = 'nivel'; }
   if (ldrs.length){ L.push(`  int luz = analogRead(${ldrs[0].sym});          // más luz = valor más alto`); L.push('  Serial.print("Luz: "); Serial.println(luz);'); if (!level) level = '(1023 - luz)'; alertExpr = alertExpr || 'luz < 400'; }
   if (temps.length){ L.push(`  float temperatura = analogRead(${temps[0].sym}) * 500.0 / 1023.0;`); L.push('  Serial.print("Temperatura: "); Serial.print(temperatura, 1); Serial.println(" °C");'); if (!level) level = 'constrain(map(temperatura, 20, 40, 0, 1023), 0, 1023)'; alertExpr = alertExpr || 'temperatura > 30'; }
+  const currs = it.filter(i => i.type === 'acs712');
+  if (currs.length){ L.push(`  float corriente = (analogRead(${currs[0].sym}) * 5.0 / 1023.0 - 2.5) / 0.185;   // amperios`); L.push('  Serial.print("Corriente: "); Serial.print(corriente, 2); Serial.println(" A");'); alertExpr = alertExpr || 'abs(corriente) > 2.0'; }
   if (sonars.length){ const s = sonars[0]; L.push(`  long cm = medirDistancia(${s.trig}, ${s.echo});`); L.push('  Serial.print("Distancia: "); Serial.print(cm); Serial.println(" cm");'); if (!level) level = 'constrain(map(cm, 2, 200, 1023, 0), 0, 1023)'; alertExpr = alertExpr || 'cm < 50'; }
   if (conds.length){ L.push(`  bool activo = ${conds.join(' || ')};`); L.push('  Serial.print("Activo: "); Serial.println(activo);'); alertExpr = 'activo'; }
   if (!alertExpr && level) alertExpr = `${level} > 512`;
@@ -3843,6 +3913,14 @@ function v3Model(c){
       g.add(at(box(1, 1, 0.04, 0x1D1F23), 0, 0.5, 0.0));
       label('LM35', 0, 0.55, 0.3, {size: 40, scale: .006});
       lead('v', -0.35, 0, 1.6); lead('o', 0, 0, 1.6); lead('g', 0.35, 0, 1.6);
+      break; }
+    case 'acs712': {
+      g.add(at(pcb(2.4, 1.9, 0xC62828), 0, 0, -0.2));
+      g.add(at(box(1.7, 0.7, 0.7, 0x2F6BE0), 0, 0.42, -0.75));
+      [-0.42, 0.42].forEach(x => { g.add(at(cyl(0.2, 0.2, 0.08, 0xC9CED4, {m: .6}), x, 0.81, -0.75)); g.add(at(box(0.3, 0.04, 0.06, 0x555B63), x, 0.86, -0.75)); });
+      g.add(at(box(0.5, 0.14, 0.4, 0x1D1F23), 0, 0.14, 0.15));
+      label('ACS712 5A', 0, 0.2, 0.55, {size: 34, scale: .0045});
+      header(['v', 'o', 'g'], -0.35, -0.2, 0.75);
       break; }
     case 'pir': {
       g.add(at(pcb(2.2, 2.2, 0x2E7D46), 0, 0, 0));
@@ -4589,6 +4667,7 @@ function makeApi(id){
       if (c.type === 'pot') return c.m.ok ? (c.m.inv ? 1023 - c.value : c.value) : Math.floor(Math.random() * 300);
       if (c.type === 'ldr') return !c.m.ok ? Math.floor(Math.random() * 40) : c.m.pd ? Math.round(c.value * 10.23 * (0.98 + Math.random() * 0.02)) : 1012 + Math.floor(Math.random() * 11);
       if (c.type === 'lm35') return c.m.ok ? constrain(Math.round(c.value * 10 / 4.8876 + (Math.random() - 0.5)), 0, 1023) : 0;
+      if (c.type === 'acs712') return c.m.ok ? constrain(Math.round(512 + c.value / 1000 * 37.84 + (Math.random() - 0.5) * 2), 0, 1023) : 0;
       if (c.type === 'button' || c.type === 'switch') return switchState(c, p) ? 1023 : 0;
       if (c.type === 'pir') return c.m.ok && c.on ? 1023 : 0;
     }
@@ -4598,6 +4677,8 @@ function makeApi(id){
   const fmt = (x, f) => {
     if (typeof x === 'boolean') return x ? '1' : '0';
     if (typeof x === 'number'){
+      // como en Arduino: con decimales, el segundo número es la cantidad de decimales (no la base)
+      if (typeof f === 'number' && !Number.isInteger(x)) return x.toFixed(Math.max(0, Math.min(f, 20)));
       if (f === 16) return Math.trunc(x).toString(16).toUpperCase();
       if (f === 2) return Math.trunc(x).toString(2);
       if (f === 8) return Math.trunc(x).toString(8);
@@ -4745,7 +4826,7 @@ function makeApi(id){
       for (const c of compsOn(p)){
         if (c.type === 'button' || c.type === 'switch') return switchState(c, p);
         if (c.type === 'pir') return c.m.ok && c.on ? 1 : 0;
-        if (c.type === 'pot' || c.type === 'ldr' || c.type === 'lm35') return analogVal(p) > 511 ? 1 : 0;
+        if (c.type === 'pot' || c.type === 'ldr' || c.type === 'lm35' || c.type === 'acs712') return analogVal(p) > 511 ? 1 : 0;
         if (c.type === 'sonar' && c.m.echo === p) return 0;
       }
       if (pins[p].mode === 'OUTPUT') return pins[p].v;
@@ -4947,6 +5028,7 @@ function frame(now){
       case 'pot': s.knob.setAttribute('transform', `rotate(${-135 + c.value / 1023 * 270} 22 -36)`); txt = m.ok ? `lectura ≈ ${m.inv ? 1023 - c.value : c.value}` : 'sin alimentar'; break;
       case 'ldr': s.face.style.filter = `brightness(${0.45 + c.value / 100 * 0.75})`; txt = `luz ${c.value}%` + (m.pin != null ? (m.pd ? ` · ≈${Math.round(c.value * 10.23)}` : ' · lectura ~1023') : ''); break;
       case 'lm35': txt = `${c.value} °C` + (m.ok ? ` · ≈${Math.round(c.value * 10 / 4.8876)}` : ' · sin alimentar'); break;
+      case 'acs712': txt = `${(c.value / 1000).toFixed(2)} A` + (m.ok ? ` · ≈${Math.round(512 + c.value / 1000 * 37.84)}` : ' · sin alimentar'); break;
       case 'pir': s.ind.setAttribute('fill', c.on && m.ok ? '#FF3B30' : '#4a1d1a'); txt = !m.ok ? 'sin alimentar' : c.on ? 'movimiento: HIGH' : 'quieto: LOW'; break;
       case 'sonar': txt = `${c.value} cm` + (m.ok ? '' : ' · sin alimentar'); break;
       case 'buzzer': {
@@ -5858,6 +5940,7 @@ const GUIDE = (() => {
     pot:'Es una perilla que gira. El Arduino sabe cuánto la giraste, de 0 a 1023.',
     ldr:'Es un sensor de luz: siente si hay luz o está oscuro.',
     lm35:'Es un sensor de temperatura: le dice al Arduino si hace frío o calor.',
+    acs712:'Es un sensor de corriente: le dice al Arduino cuántos amperios pasan por un cable.',
     pir:'Es un sensor de movimiento: detecta cuando alguien pasa cerca.',
     sonar:'Es el sensor de distancia. Funciona como un murciélago: manda un sonido y escucha el eco.',
     buzzer:'Es un zumbador: hace pitidos y hasta melodías.',
@@ -6228,6 +6311,7 @@ const GAMES = (() => {
     pot:'Soy una perilla que gira. El Arduino sabe cuánto me giraste.',
     ldr:'Siento si hay luz o si está oscuro.',
     lm35:'Le digo al Arduino si hace frío o calor.',
+    acs712:'Le digo al Arduino cuánta corriente pasa por un cable.',
     pir:'Me doy cuenta cuando alguien pasa cerca de mí.',
     sonar:'Funciono como un murciélago: mando un sonido y escucho el eco para saber la distancia.',
     buzzer:'Hago pitidos y puedo tocar melodías.',
@@ -6454,6 +6538,148 @@ window.__games = GAMES;
   review = function(notify, ctx){ _review(notify, ctx); if (GAMES.state()) GAMES.renderBar(); };
 }
 
+
+/* ================= Mis proyectos: proyectos propios que el profesor agrega sin Claude ================= */
+const MIS = (() => {
+  const KEYM = 'banco-mis-proyectos';
+  let local = [], remote = [];
+  try { local = JSON.parse(localStorage.getItem(KEYM) || '[]'); if (!Array.isArray(local)) local = []; } catch (e) { local = []; }
+  const persist = () => { try { localStorage.setItem(KEYM, JSON.stringify(local)); return true; } catch (e) { return false; } };
+  const splitList = (v, sep) => (Array.isArray(v) ? v : String(v || '').split(sep)).map(x => String(x).trim()).filter(Boolean);
+  function clean(p){
+    if (!p || typeof p !== 'object' || typeof p.titulo !== 'string' || !p.titulo.trim() || !Array.isArray(p.comps)) return null;
+    return {
+      titulo: p.titulo.trim().slice(0, 80),
+      keys: splitList(p.keys, ',').slice(0, 20),
+      idea: String(p.idea || '').trim().slice(0, 600),
+      notas: splitList(p.notas, '\n').slice(0, 20),
+      code: typeof p.code === 'string' ? p.code : typeof p.codigo === 'string' ? p.codigo : '',
+      comps: p.comps.filter(c => c && TYPES[c.type]).map(({g, s, card, read, disp, rot, pressed, onT, m, conn, fixed, prefKind, box, ...c}) => c),
+      wires: (p.wires || []).filter(w => w && typeof w.a === 'string' && typeof w.b === 'string').map(w => ({id: w.id, a: w.a, b: w.b, color: w.color})),
+    };
+  }
+  local = local.map(clean).filter(Boolean);
+  function list(){
+    const m = new Map();
+    remote.forEach(p => m.set(norm(p.titulo), {...p, src: 'web'}));
+    local.forEach(p => m.set(norm(p.titulo), {...p, src: 'pc'}));
+    return [...m.values()];
+  }
+  function find(text){
+    const t = ' ' + norm(text).replace(/[.,;:¡!¿?()]/g, ' ').replace(/\s+/g, ' ') + ' ';
+    let best = null, bs = 0;
+    for (const p of list()){
+      let sc = 0;
+      for (const k of [p.titulo, ...p.keys]){ const nk = norm(k).replace(/\s+/g, ' '); if (nk && t.includes(' ' + nk + ' ')) sc += nk.length + 10; }
+      if (sc > bs){ best = p; bs = sc; }
+    }
+    return best;
+  }
+  const toast = (msg) => { let t = $('#mtoast'); if (!t){ t = document.createElement('div'); t.id = 'mtoast'; t.className = 'mtoast'; t.setAttribute('role', 'status'); document.body.appendChild(t); } t.innerHTML = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, 3800); };
+  function load(p, ask = true){
+    if (ask && code.value.trim() && code.value !== lastLoaded && !confirm(`Cargar «${p.titulo}» reemplaza tu circuito y tu código actuales. ¿Continuar?`)) return false;
+    stop(); comps.forEach(stopBuzz);
+    comps = []; selected = null; selWire = null;
+    nextId = p.comps.reduce((m, c) => Math.max(m, c.id || 0), 0) + 1;
+    nextW = p.wires.reduce((m, w) => Math.max(m, w.id || 0), 0) + 1;
+    wires = p.wires.map(w => ({...w, id: w.id ?? nextW++, color: w.color || autoColor(w.a, w.b)}));
+    p.comps.forEach(c => addComp(c.type, {...c}));
+    builtPlan = null; code.value = p.code; lastLoaded = code.value;
+    diags = []; badLine = 0; renderDiag(); renderGutter();
+    renderParts(); renderCards(); drawWires(); review(false); prevKeys = new Set(issues.map(i => i.lvl + '|' + i.cid + '|' + i.msg));
+    save();
+    toast(`⭐ Proyecto cargado: <b>${esc(p.titulo)}</b>. Pulsa Ejecutar para probarlo.`);
+    return true;
+  }
+  const compSummary = p => { const n = {}; p.comps.forEach(c => { const k = c.type === 'led' ? 'LED ' + (c.color || '') : TYPES[c.type].name; n[k] = (n[k] || 0) + 1; }); return Object.entries(n).map(([k, v]) => `<span>${v} × ${esc(k)}</span>`).join(''); };
+  function showInPlan(p){
+    const el = $('#plan'); el.hidden = false;
+    el.innerHTML = `<h3>⭐ ${esc(p.titulo)}</h3>${p.idea ? `<p class="msg">${esc(p.idea)}</p>` : ''}<div class="mats">${compSummary(p)}</div>
+      ${p.notas.length ? `<ul class="misnotes">${p.notas.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}
+      <div class="acts"><button class="btn primary" type="button" id="misLoad">Cargar en la protoboard</button><span class="msg">De Mis proyectos (${p.src === 'web' ? 'publicado en GitHub' : 'guardado en este computador'}).</span></div>`;
+    $('#misLoad').onclick = () => load(p);
+  }
+  // el asistente busca primero en Mis proyectos
+  const _makePlan = makePlan;
+  makePlan = function(text, ai){ if (!ai && text && text.trim()){ const p = find(text); if (p){ showInPlan(p); return; } } return _makePlan(text, ai); };
+
+  /* ---------- ventana Mis proyectos ---------- */
+  const modal = $('#misModal');
+  function open(){ modal.hidden = false; render(); setTimeout(() => $('#misName').focus(), 30); }
+  function close(){ modal.hidden = true; }
+  $('#misClose').onclick = close;
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden){ e.stopPropagation(); close(); } }, true);
+  $('#misBtn').onclick = open;
+  function render(){
+    const all = list();
+    $('#misCount').textContent = `(${all.length})`;
+    $('#misList').innerHTML = all.length ? all.map((p, i) => `<li><div class="mt"><b>${esc(p.titulo)}</b><span class="src ${p.src}">${p.src === 'web' ? 'GitHub' : 'este PC'}</span></div>
+      <small>${p.keys.length ? 'Palabras clave: ' + esc(p.keys.join(', ')) : 'Sin palabras clave'} · ${p.comps.length} componentes · ${p.wires.length} cables</small>
+      <div class="ma"><button class="btn small primary" data-a="open" data-i="${i}">Abrir</button><button class="btn small" data-a="edit" data-i="${i}" title="Abre el proyecto y copia sus datos al formulario para que lo cambies y lo guardes de nuevo">Editar</button>${p.src === 'pc' ? `<button class="btn small" data-a="del" data-i="${i}">Borrar</button>` : ''}</div></li>`).join('')
+      : '<li class="empty">Todavía no hay proyectos. Arma un circuito, escribe su código y guárdalo con el formulario.</li>';
+    $('#misList').querySelectorAll('[data-a]').forEach(b => b.onclick = () => {
+      const p = all[+b.dataset.i];
+      if (b.dataset.a === 'open'){ if (load(p)) close(); }
+      if (b.dataset.a === 'edit'){ if (!load(p)) return; $('#misName').value = p.titulo; $('#misKeys').value = p.keys.join(', '); $('#misIdea').value = p.idea; $('#misNotes').value = p.notas.join('\n'); msg('Cambia el circuito, el código o los datos y pulsa «Guardar en Mis proyectos» con el mismo nombre.'); }
+      if (b.dataset.a === 'del'){ if (!confirm(`¿Borrar «${p.titulo}» de este computador?`)) return; local = local.filter(x => norm(x.titulo) !== norm(p.titulo)); persist(); render(); refresh(); }
+    });
+  }
+  const msg = (t, bad) => { const m = $('#misMsg'); m.textContent = t; m.style.color = bad ? 'var(--err)' : ''; };
+  $('#misSave').onclick = () => {
+    const titulo = $('#misName').value.trim();
+    if (!titulo){ msg('Escribe un nombre para el proyecto.', true); $('#misName').focus(); return; }
+    if (!comps.length){ msg('La protoboard está vacía: arma primero el circuito.', true); return; }
+    const p = clean({titulo, keys: $('#misKeys').value, idea: $('#misIdea').value, notas: $('#misNotes').value, code: code.value, comps, wires});
+    const had = local.some(x => norm(x.titulo) === norm(titulo));
+    local = local.filter(x => norm(x.titulo) !== norm(titulo)); local.push(p);
+    if (!persist()){ msg('No se pudo guardar en este navegador.', true); return; }
+    lastLoaded = code.value;
+    render(); refresh();
+    msg(`${had ? 'Actualizado' : 'Guardado'}. El asistente lo encuentra con: ${[titulo, ...p.keys].join(', ')}.`);
+  };
+  async function download(filename, data){
+    const dl = await dlP;
+    if (dl){ try { await dl.save({filename, data}); return true; } catch (e) { if (e && (e.code === 'cancelled' || e.code === 'declined')) return false; } }
+    try { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], {type: 'application/json'})); a.download = filename; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000); return true; }
+    catch (e) { return false; }
+  }
+  $('#misExport').onclick = async () => {
+    const all = list().map(({src, ...p}) => p);
+    if (!all.length){ msg('No hay proyectos para exportar.', true); return; }
+    const ok = await download('proyectos.json', JSON.stringify(all, null, 1));
+    msg(ok ? `Exportados ${all.length} proyectos en proyectos.json.` : 'No se pudo descargar el archivo.', !ok);
+  };
+  $('#misImport').onclick = () => $('#misFile').click();
+  $('#misFile').onchange = e => {
+    const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => {
+      let d; try { d = JSON.parse(rd.result); } catch (err) { msg('Ese archivo no es un proyecto de Banco Arduino.', true); return; }
+      const arr = (Array.isArray(d) ? d : Array.isArray(d.proyectos) ? d.proyectos : [d]).map(x => x && x.app === 'banco-arduino' && !x.keys ? {...x, keys: [], idea: x.plan && x.plan.raw && x.plan.raw.idea || ''} : x).map(clean).filter(Boolean);
+      if (!arr.length){ msg('No encontré proyectos en ese archivo.', true); return; }
+      arr.forEach(p => { local = local.filter(x => norm(x.titulo) !== norm(p.titulo)); local.push(p); });
+      persist(); render(); refresh();
+      msg(`Importados ${arr.length} proyecto${arr.length > 1 ? 's' : ''}: ${arr.map(p => p.titulo).join(', ')}.`);
+    };
+    rd.readAsText(f);
+  };
+  // atajo en el asistente
+  const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'idea'; chip.id = 'misChip';
+  chip.onclick = e => { e.stopPropagation(); open(); };
+  $('#ideas').appendChild(chip);
+  function refresh(){ chip.textContent = `⭐ Mis proyectos (${list().length})`; try { ISO.drawLessons(); } catch (e) {} }
+  refresh();
+  // proyectos publicados junto al simulador (GitHub Pages): proyectos.json
+  if (/^https?:$/.test(location.protocol) && !/claude\.(ai|site)|claudeusercontent/.test(location.hostname)){
+    fetch('proyectos.json', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).then(d => {
+      if (!d) return;
+      remote = (Array.isArray(d) ? d : d.proyectos || []).map(clean).filter(Boolean);
+      refresh(); if (!modal.hidden) render();
+    }).catch(() => {});
+  }
+  return {list, find, load, open, refresh};
+})();
 
 /* ================= Vista ilustrada: el circuito en isométrico, con etiquetas y lecciones ================= */
 const ISO = (() => {
@@ -6801,17 +7027,22 @@ const ISO = (() => {
   let first = 'iso'; try { first = localStorage.getItem('banco-arduino-vista') || 'iso'; } catch (e) {}
 
   /* ---------- lecciones ---------- */
-  const LESSONS = [{t: 'Conoce la placa', board: true}, ...EX.map((e, i) => ({t: e.name.replace(/^Reto: /, ''), ex: i}))];
+  let LESSONS = [];
   const row = $('#lrow');
-  row.innerHTML = LESSONS.map((l, i) => `<button type="button" class="lcard" data-l="${i}"><span class="th" id="lth${i}"></span><span class="t">${i + 1}. ${esc(l.t)}</span><svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.5 8 6l-3.5 3.5"/></svg></button>`).join('');
-  row.querySelectorAll('.lcard').forEach(b => b.onclick = () => {
-    const l = LESSONS[+b.dataset.l];
-    setView('iso');
-    if (l.board){ st.labels = 'board'; makeCallouts(); home(); markLesson(0); return; }
-    st.labels = 'auto';
-    exSel.value = String(l.ex); exSel.onchange();
-    markLesson();
-  });
+  function drawLessons(){
+    let mine = []; try { mine = MIS.list(); } catch (e) {}
+    LESSONS = [{t: 'Conoce la placa', board: true}, ...EX.map((e, i) => ({t: e.name.replace(/^Reto: /, ''), ex: i})), ...mine.map(p => ({t: p.titulo, mine: p}))];
+    row.innerHTML = LESSONS.map((l, i) => `<button type="button" class="lcard${l.mine ? ' mine' : ''}" data-l="${i}"${l.mine ? ' title="De Mis proyectos"' : ''}><span class="th" id="lth${i}"></span><span class="t">${i + 1}. ${esc(l.t)}</span><svg class="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 2.5 8 6l-3.5 3.5"/></svg></button>`).join('');
+    row.querySelectorAll('.lcard').forEach(b => b.onclick = () => {
+      const l = LESSONS[+b.dataset.l];
+      if (l.board){ setView('iso'); st.labels = 'board'; makeCallouts(); home(); markLesson(0); return; }
+      st.labels = 'auto';
+      if (l.mine){ if (MIS.load(l.mine)) markLesson(+b.dataset.l); return; }
+      exSel.value = String(l.ex); exSel.onchange();
+      markLesson();
+    });
+    clearTimeout(drawLessons.t); drawLessons.t = setTimeout(thumbs, 300);
+  }
   function markLesson(force){
     let cur = force;
     if (cur == null){ const i = EX.findIndex(e => e.code === lastLoaded && code.value === lastLoaded); cur = i >= 0 ? i + 1 : -1; }
@@ -6835,7 +7066,7 @@ const ISO = (() => {
       let g;
       try {
         if (l.board) g = mini();
-        else { const ex = EX[l.ex], main = ex.comps.find(c => c.type !== 'resistor') || ex.comps[0];
+        else { const ex = l.mine ? {comps: l.mine.comps} : EX[l.ex], main = ex.comps.find(c => c.type !== 'resistor') || ex.comps[0];
           if (!main) g = mini(); else { const {at: _, ...props} = main; g = v3Model({id: -1, ...props, type: main.type}).group; } }
       } catch (e) { g = mini(); }
       v3Linear(g); v3Toon(g); v3Outline(g);
@@ -6847,7 +7078,7 @@ const ISO = (() => {
       const s = Math.max(x1 - x0, y1 - y0) / 2 * 1.12, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
       Object.assign(cam, {left: mx - s, right: mx + s, top: my + s, bottom: my - s}); cam.updateProjectionMatrix();
       r.render(sc, cam);
-      const img = new Image(); img.alt = ''; img.src = tc.toDataURL('image/png'); $('#lth' + i).appendChild(img);
+      const img = new Image(); img.alt = ''; img.src = tc.toDataURL('image/png'); const th = $('#lth' + i); if (th){ th.innerHTML = ''; th.appendChild(img); }
       sc.remove(g); dispose(g);
     });
     r.dispose(); r.forceContextLoss?.();
@@ -6860,9 +7091,9 @@ const ISO = (() => {
   new MutationObserver(() => { if (document.body.classList.contains('inmission')) setView('edit'); }).observe(document.body, {attributes: true, attributeFilter: ['class']});
   setView(first);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { pcbTex = null; st.sig = ''; st.pending = 1; });
-  setTimeout(thumbs, 400);
+  drawLessons();
   requestAnimationFrame(loop);
-  return {changed(){ st.pending = 1; markLesson(); }, setView, build, st};
+  return {changed(){ st.pending = 1; markLesson(); }, setView, build, st, drawLessons};
 })();
 
 /* ================= Pantalla completa para armar el proyecto ================= */
