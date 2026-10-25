@@ -451,7 +451,15 @@ for (int i = 0; i < 5; i++) {  // repetir 5 veces
 <tr><td>Adafruit Fingerprint Sensor Library</td><td>Lector de huellas R307 / AS608</td></tr>
 <tr><td>DHT sensor library</td><td>Sensor de temperatura y humedad DHT11</td></tr>
 <tr><td>Adafruit SSD1306 y Adafruit GFX</td><td>Pantalla OLED</td></tr>
-<tr><td>Servo</td><td>Servomotores (ya viene instalada)</td></tr></table>
+<tr><td>Servo y Stepper</td><td>Servomotores y motor paso a paso (ya vienen instaladas)</td></tr>
+<tr><td>TM1637</td><td>Display de 4 dígitos</td></tr>
+<tr><td>LedControl</td><td>Matriz LED 8×8 MAX7219</td></tr>
+<tr><td>Adafruit NeoPixel</td><td>Anillos y tiras de LED RGB WS2812</td></tr>
+<tr><td>IRremote</td><td>Receptor infrarrojo y control remoto</td></tr>
+<tr><td>OneWire y DallasTemperature</td><td>Sonda de temperatura DS18B20</td></tr>
+<tr><td>HX711</td><td>Balanza con celda de carga</td></tr>
+<tr><td>Adafruit BMP280</td><td>Barómetro</td></tr>
+<tr><td>RTClib</td><td>Reloj de tiempo real DS3231</td></tr></table>
 <div class="box info"><h4>Registrar huellas en el lector</h4>Antes de usar el lector de huellas, abre <b>Archivo → Ejemplos → Adafruit Fingerprint Sensor Library → enroll</b>, súbelo y sigue las instrucciones del monitor serie: escribe el número (1, 2, 3…) y pon el dedo dos veces. Ese número es el que devuelve <code>leerHuella()</code> en los proyectos.</div>
 </section>
 

@@ -8,7 +8,7 @@ const {chromium}=require('playwright');const fs=require('fs');
  const errs=[]; p.on('pageerror',e=>errs.push(e.message)); p.on('dialog',d=>d.accept());
  await p.goto('file://'+html); await p.waitForTimeout(1200);
  await p.evaluate(()=>{document.querySelectorAll('button').forEach(b=>{if(b.textContent.trim()==='✕')b.click()}); localStorage.setItem('banco-arduino-vista','edit');});
- await p.click('[data-view=edit]');
+ await p.evaluate(()=>window.__nav&&window.__nav('taller'));await p.click('[data-view=edit]');
  const res=[];
  for (const pr of P){
   errs.length=0;
