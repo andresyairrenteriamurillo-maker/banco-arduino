@@ -395,6 +395,57 @@ body.fs .chispa{bottom:96px}
 #misChip{border-style:solid;border-color:var(--accent);color:var(--accent);font-weight:600}
 .mtoast{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:80;background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:calc(100vw - 32px)}
 .lcard.mine .t::before{content:"★ ";color:#E0A21B}
+
+/* Proyectos: buscador, estudiante y docente */
+.hub{position:relative;height:clamp(380px,56vh,580px);display:flex;flex-direction:column;background:var(--mat);min-height:0}
+.hub-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 14px 6px}
+.hub-search{flex:1 1 320px;min-width:0;display:flex;align-items:center;gap:10px;border:2px solid var(--line);background:var(--surface);border-radius:10px;padding:0 12px;color:var(--muted)}
+.hub-search:focus-within{border-color:var(--accent)}
+.hub-search input{flex:1;min-width:0;border:0;background:transparent;outline:none;padding:11px 0;font-size:16px;color:var(--ink)}
+.hub-doc,.hub-pin{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:4px 14px;padding:8px 10px;border-radius:8px;background:var(--warn-soft);border:1px solid var(--line);font-size:13px}
+.hub-doc .sp{flex:1}
+.hub-pin input{width:120px;border:1.5px solid var(--line);border-radius:6px;padding:5px 8px;background:var(--surface);color:var(--ink)}
+.hub-pin small{color:var(--err)}
+.hub-filters{display:flex;gap:6px;flex-wrap:wrap;padding:4px 14px 8px}
+.hchip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 11px;font-size:12.5px;cursor:pointer;color:var(--ink)}
+.hchip span{color:var(--muted);margin-left:3px}
+.hchip[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.hchip[aria-pressed="true"] span{color:inherit;opacity:.7}
+.hub-grid{flex:1;min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));align-content:start;gap:10px;padding:2px 14px 14px}
+.pcard{display:flex;gap:10px;align-items:flex-start;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:9px;padding:8px;cursor:pointer;color:var(--ink);min-width:0}
+.pcard:hover{border-color:var(--accent);box-shadow:0 2px 10px rgba(20,28,40,.08)}
+.pth{flex:none;width:64px;height:64px;border-radius:7px;background:var(--surface-2);overflow:hidden;display:grid;place-items:center}
+.pth img{width:100%;height:100%;object-fit:contain}
+.pbody{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pbody b{font:600 14px var(--f-body);line-height:1.25}
+.pbody small{font-size:12px;color:var(--muted);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.pmeta{font-size:11px;color:var(--muted)}
+.psrc{align-self:flex-start;font-size:10.5px;font-weight:600;letter-spacing:.04em;padding:1px 7px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);color:var(--muted)}
+.psrc.doc{color:#B7791F;border-color:#E9C46A}
+.hempty{grid-column:1/-1;text-align:center;color:var(--muted);padding:20px}
+.hub-detail{position:absolute;inset:0;background:var(--surface);overflow:auto;padding:14px 16px;z-index:2;display:flex;flex-direction:column;gap:12px}
+.dhead{display:flex;gap:10px;align-items:center}
+.dmain{display:grid;grid-template-columns:180px minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:640px){.dmain{grid-template-columns:minmax(0,1fr)}}
+.dimg{width:180px;height:180px;object-fit:contain;background:var(--surface-2);border-radius:10px}
+.dmain h3{margin:0 0 4px;font:600 20px var(--f-disp)}
+.dmain p{margin:0 0 8px;color:var(--muted)}
+.dmain h4{margin:10px 0 4px;font:600 12px var(--f-mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.dmain ul{margin:0;padding-left:18px;font-size:14px;line-height:1.5}
+.dacts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.dacts .sp{flex:1}
+body:not(.docente) #misBtn,body:not(.docente) #misChip{display:none!important}
+body.armando .comp [data-auto],body.armando #buildPlan{display:none!important}
+.buildbar{position:fixed;right:12px;bottom:12px;z-index:56;width:min(360px,calc(100vw - 24px));background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:10px 12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.buildbar.done{border-left-color:var(--ok)}
+.buildbar .bt{display:flex;align-items:center;gap:8px}.buildbar .bt b{flex:1}
+.buildbar .bp{height:8px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.buildbar .bp i{display:block;height:100%;background:var(--accent);transition:width .3s}
+.buildbar.done .bp i{background:var(--ok)}
+.buildbar .bm{color:var(--muted)}.buildbar .bm b{color:var(--ink)}
+.buildbar .ba{display:flex;gap:6px;flex-wrap:wrap}
+body.fs .panel.fsp .hub{flex:1;height:auto}
+@media (max-width:640px){.hub{height:max(460px,120vw)}}
 /* lecciones */
 .lessons{border-top:1px solid var(--line);padding:10px 0 12px;background:var(--surface)}
 .lessons .eyebrow{display:block;padding:0 14px 8px}
@@ -418,7 +469,7 @@ body.fs .chispa{bottom:96px}
   <header class="top">
     <div class="brand">
       <svg class="logo" viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="9" y="9" width="28" height="28" rx="3"/><rect x="16" y="16" width="14" height="14" rx="1.5" fill="var(--accent)" stroke="var(--accent)"/><path d="M15 9V3M23 9V3M31 9V3M15 43v-6M23 43v-6M31 43v-6M9 15H3M9 23H3M9 31H3M43 15h-6M43 23h-6M43 31h-6"/><circle cx="23" cy="23" r="2.6" fill="var(--surface)" stroke="none"/></svg>
-      <div><h1>Banco Arduino</h1><p class="tagline">Explora<i>·</i>Entiende<i>·</i>Construye</p><p class="sub">Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-2150</span></p></div>
+      <div><h1>Banco Arduino</h1><p class="tagline">Explora<i>·</i>Entiende<i>·</i>Construye</p><p class="sub">Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.24-2215</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -437,7 +488,7 @@ body.fs .chispa{bottom:96px}
   <div class="grid">
     <div class="col">
       <section class="panel">
-        <div class="panel-h"><div class="seg" id="viewSeg" role="tablist" aria-label="Vista"><button type="button" role="tab" data-view="iso" aria-selected="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5 14 5v6l-6 3.5L2 11V5z"/><path d="M2 5l6 3.5L14 5M8 8.5v6"/></svg>Vista ilustrada</button><button type="button" role="tab" data-view="edit" aria-selected="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13c3 0 3-5 6-5s3 5 6 5"/><circle cx="2" cy="13" r="1.3"/><circle cx="14" cy="13" r="1.3"/></svg>Cablear</button></div><span class="sp"></span>
+        <div class="panel-h"><div class="seg" id="viewSeg" role="tablist" aria-label="Vista"><button type="button" role="tab" data-view="hub" aria-selected="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5 14 14"/></svg>Proyectos</button><button type="button" role="tab" data-view="iso" aria-selected="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1.5 14 5v6l-6 3.5L2 11V5z"/><path d="M2 5l6 3.5L14 5M8 8.5v6"/></svg>Vista ilustrada</button><button type="button" role="tab" data-view="edit" aria-selected="false"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13c3 0 3-5 6-5s3 5 6 5"/><circle cx="2" cy="13" r="1.3"/><circle cx="14" cy="13" r="1.3"/></svg>Cablear</button></div><span class="sp"></span>
           <span class="pill fsonly" id="fsStatus">Detenido</span><button class="btn small primary fsonly" id="fsRun" type="button">▶ Ejecutar</button>
           <button class="btn small" id="fsBtn" type="button" aria-pressed="false" title="Trabajar en pantalla completa (Esc para salir)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4"/></svg><span>Pantalla completa</span></button>
           <button class="btn small primary" id="all3d">🧊 Ver en 3D</button>
@@ -461,7 +512,18 @@ body.fs .chispa{bottom:96px}
           <span class="howto">Arrastra desde un pin del Arduino hasta un agujero. Toca un componente para verlo en 3D con sus conexiones (el botón, el interruptor y el PIR: doble clic).</span>
         </div>
         <div class="stage">
-        <div class="iso" id="iso"><canvas id="isoCanvas" tabindex="0" aria-label="Vista ilustrada del circuito. Arrastra para moverla, clic derecho para girarla, Ctrl + rueda para acercar; toca una pieza para verla en 3D."></canvas><svg class="leads" id="isoLeads" aria-hidden="true"></svg><div class="labels" id="isoLabels"></div><span class="hint">ARRASTRA PARA MOVER · CLIC DERECHO PARA GIRAR · CTRL + RUEDA PARA ACERCAR</span><span class="tip" id="isoTip" hidden>Para acercar: Ctrl + rueda, pellizca o usa + y −</span><span class="run">Ejecutando</span><div class="bar" id="isoBar"></div></div>
+        <div class="hub" id="hub" hidden>
+          <div class="hub-top">
+            <div class="hub-search"><svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 11l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><input id="hubQ" type="search" placeholder="¿Qué quieres armar? Ej: semáforo, medidor de corriente, alarma…" aria-label="Buscar un proyecto para armar" autocomplete="off"></div>
+            <div class="seg" id="roleSeg" role="tablist" aria-label="Modo"><button type="button" role="tab" data-role="est" aria-selected="true">🎒 Estudiante</button><button type="button" role="tab" data-role="doc" aria-selected="false">🧑‍🏫 Docente</button></div>
+          </div>
+          <div class="hub-pin" id="hubPinBox" hidden></div>
+          <div class="hub-doc" id="hubDoc" hidden><b>Modo docente</b><button type="button" class="btn small primary" id="hubNew">➕ Nuevo proyecto con el circuito actual</button><button type="button" class="btn small" id="hubManage">⭐ Administrar, exportar e importar</button><span class="sp"></span><button type="button" class="btn small" id="hubPin">Cambiar PIN</button><button type="button" class="btn small" id="hubOut">Salir del modo docente</button></div>
+          <div class="hub-filters" id="hubFilters"></div>
+          <div class="hub-grid" id="hubGrid"></div>
+          <div class="hub-detail" id="hubDetail" hidden></div>
+        </div>
+                <div class="iso" id="iso"><canvas id="isoCanvas" tabindex="0" aria-label="Vista ilustrada del circuito. Arrastra para moverla, clic derecho para girarla, Ctrl + rueda para acercar; toca una pieza para verla en 3D."></canvas><svg class="leads" id="isoLeads" aria-hidden="true"></svg><div class="labels" id="isoLabels"></div><span class="hint">ARRASTRA PARA MOVER · CLIC DERECHO PARA GIRAR · CTRL + RUEDA PARA ACERCAR</span><span class="tip" id="isoTip" hidden>Para acercar: Ctrl + rueda, pellizca o usa + y −</span><span class="run">Ejecutando</span><div class="bar" id="isoBar"></div></div>
         <div class="mat" id="mat">
           <div class="pop" id="pop" hidden role="status"></div>
           <div class="scene-wrap"><svg id="scene" viewBox="0 0 900 790" tabindex="0" role="application" aria-label="Protoboard y placa Arduino Uno. Arrastra cables entre pines y agujeros. Supr borra el cable o componente seleccionado."></svg></div>
@@ -524,6 +586,7 @@ body.fs .chispa{bottom:96px}
       </div>
     </div>
   </div>
+  <div class="buildbar" id="buildBar" hidden role="status"></div>
   <div class="v3modal" id="v3modal" hidden role="dialog" aria-modal="true" aria-labelledby="v3title">
     <div class="v3card">
       <div class="v3head"><h2 id="v3title">Vista 3D</h2><span class="chip" id="v3state"></span><span class="sp" style="flex:1"></span>
@@ -6668,7 +6731,7 @@ const MIS = (() => {
   const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'idea'; chip.id = 'misChip';
   chip.onclick = e => { e.stopPropagation(); open(); };
   $('#ideas').appendChild(chip);
-  function refresh(){ chip.textContent = `⭐ Mis proyectos (${list().length})`; try { ISO.drawLessons(); } catch (e) {} }
+  function refresh(){ chip.textContent = `⭐ Mis proyectos (${list().length})`; try { ISO.drawLessons(); } catch (e) {} try { HUB.render(); } catch (e) {} }
   refresh();
   // proyectos publicados junto al simulador (GitHub Pages): proyectos.json
   if (/^https?:$/.test(location.protocol) && !/claude\.(ai|site)|claudeusercontent/.test(location.hostname)){
@@ -6678,7 +6741,9 @@ const MIS = (() => {
       refresh(); if (!modal.hidden) render();
     }).catch(() => {});
   }
-  return {list, find, load, open, refresh};
+  function editP(p){ open(); if (!load(p)) return; $('#misName').value = p.titulo; $('#misKeys').value = p.keys.join(', '); $('#misIdea').value = p.idea; $('#misNotes').value = p.notas.join('\n'); msg('Cambia el circuito, el código o los datos y pulsa «Guardar en Mis proyectos» con el mismo nombre.'); }
+  function removeP(p){ if (p.src !== 'pc' || !confirm(`¿Borrar «${p.titulo}» de este computador?`)) return false; local = local.filter(x => norm(x.titulo) !== norm(p.titulo)); persist(); render(); refresh(); return true; }
+  return {list, find, load, open, refresh, edit: editP, remove: removeP};
 })();
 
 /* ================= Vista ilustrada: el circuito en isométrico, con etiquetas y lecciones ================= */
@@ -7016,15 +7081,17 @@ const ISO = (() => {
   /* ---------- pestañas ---------- */
   function setView(v){
     st.view = v;
-    panel.classList.toggle('isomode', v === 'iso');
+    panel.classList.toggle('isomode', v !== 'edit');
     box3.hidden = v !== 'iso';
-    $('#mat').classList.toggle('offstage', v === 'iso');
+    $('#hub').hidden = v !== 'hub';
+    $('#mat').classList.toggle('offstage', v !== 'edit');
+    if (v === 'hub'){ try { HUB.show(); } catch (e) {} }
     document.querySelectorAll('#viewSeg [data-view]').forEach(b => b.setAttribute('aria-selected', b.dataset.view === v ? 'true' : 'false'));
     try { localStorage.setItem('banco-arduino-vista', v); } catch (e) {}
     if (v === 'iso'){ st.pending = 1; st.lastBuild = 0; st.need = 3; }
   }
   document.querySelectorAll('#viewSeg [data-view]').forEach(b => b.onclick = () => setView(b.dataset.view));
-  let first = 'iso'; try { first = localStorage.getItem('banco-arduino-vista') || 'iso'; } catch (e) {}
+  let first = 'hub'; try { first = localStorage.getItem('banco-arduino-vista') || 'hub'; } catch (e) {}
 
   /* ---------- lecciones ---------- */
   let LESSONS = [];
@@ -7037,6 +7104,7 @@ const ISO = (() => {
       const l = LESSONS[+b.dataset.l];
       if (l.board){ setView('iso'); st.labels = 'board'; makeCallouts(); home(); markLesson(0); return; }
       st.labels = 'auto';
+      if (st.view === 'hub') setView('iso');
       if (l.mine){ if (MIS.load(l.mine)) markLesson(+b.dataset.l); return; }
       exSel.value = String(l.ex); exSel.onchange();
       markLesson();
@@ -7130,6 +7198,209 @@ const ISO = (() => {
   new MutationObserver(sync).observe(status, {childList: true, characterData: true, subtree: true, attributes: true});
   sync();
 })();
+/* ================= Proyectos: buscador para estudiantes y administración del docente ================= */
+const HUB = (() => {
+  const root = $('#hub'), grid = $('#hubGrid'), det = $('#hubDetail'), q = $('#hubQ');
+  let filter = 'all', items = [], docente = false;
+  const SRC = {doc: '⭐ Del docente', ex: '📘 Básico', lib: '📚 Proyecto listo'};
+
+  /* ---------- catálogo unificado ---------- */
+  function collect(){
+    const out = [];
+    let mine = []; try { mine = MIS.list(); } catch (e) {}
+    mine.forEach(p => out.push({src: 'doc', titulo: p.titulo, idea: p.idea, keys: p.keys, notas: p.notas, thumbComps: p.comps,
+      need: (() => { const n = {}; p.comps.forEach(c => { const k = c.type === 'led' ? 'LED ' + (c.color || '') : TYPES[c.type].name; n[k] = (n[k] || 0) + 1; }); return Object.entries(n).map(([k, v]) => `${v} × ${k}`); })(),
+      ref: p, where: p.src}));
+    EX.forEach((e, i) => {
+      const first = (e.code.match(/^\/\/\s*(.+)$/m) || [])[1] || '';
+      const n = {}; e.comps.forEach(c => { const k = c.type === 'led' ? 'LED ' + (c.color || '') : TYPES[c.type].name; n[k] = (n[k] || 0) + 1; });
+      out.push({src: 'ex', titulo: e.name.replace(/^Reto: /, '').replace(/^./, m => m.toUpperCase()), idea: first, keys: [], notas: [], thumbComps: e.comps, need: Object.entries(n).map(([k, v]) => `${v} × ${k}`), ref: i});
+    });
+    LIB.forEach(p => out.push({src: 'lib', titulo: p.titulo, idea: p.idea, keys: p.keys, notas: p.notas || [], thumbComps: p.componentes.map(c => ({type: c.tipo, color: c.color})),
+      need: [...p.componentes.map(c => `${c.nombre} (${TYPES[c.tipo] ? TYPES[c.tipo].name + (c.tipo === 'led' && c.color ? ' ' + c.color : '') : c.tipo})`), ...(p.materiales_extra || [])], ref: p}));
+    return out;
+  }
+  function score(it, t){
+    if (!t) return 1;
+    const hay = ' ' + norm([it.titulo, ...(it.keys || []), it.idea, ...it.need].join(' ')) + ' ';
+    const title = norm(it.titulo);
+    let s = 0;
+    if (title.includes(t)) s += 50;
+    if ((it.keys || []).some(k => t.includes(norm(k)) || norm(k).includes(t))) s += 30;
+    const words = t.split(/\s+/).filter(w => w.length > 2 && !['con','una','uno','que','para','los','las','del','quiero','armar','hacer'].includes(w));
+    words.forEach(w => { const st = w.replace(/(es|s)$/, ''); if (hay.includes(' ' + st) || hay.includes(st)) s += 6; });
+    return words.length && s < 6 ? 0 : s;
+  }
+
+  /* ---------- miniaturas en 3D ---------- */
+  const thumbCache = new Map(); let tr = null, tsc, tcam;
+  const EL = Math.atan(1 / Math.SQRT2);
+  function thumbOf(key, list){
+    if (thumbCache.has(key)) return thumbCache.get(key);
+    if (typeof THREE === 'undefined') return '';
+    if (!tr){
+      try { tr = new THREE.WebGLRenderer({canvas: document.createElement('canvas'), antialias: true, alpha: true, preserveDrawingBuffer: true}); } catch (e) { thumbCache.set(key, ''); return ''; }
+      tr.setPixelRatio(1); tr.setSize(160, 160, false); tr.setClearColor(0, 0); tr.outputEncoding = THREE.sRGBEncoding;
+      tsc = new THREE.Scene(); tsc.add(new THREE.HemisphereLight(0xffffff, 0x9aa6b4, 0.95));
+      const dl = new THREE.DirectionalLight(0xffffff, 0.7); dl.position.set(-6, 10, 3); tsc.add(dl);
+      tcam = new THREE.OrthographicCamera(-1, 1, 1, -1, -100, 100);
+    }
+    const g = new THREE.Group();
+    const main = (list || []).filter(c => c && TYPES[c.type] && c.type !== 'resistor');
+    const pick = main.length ? main.slice(0, 3) : [];
+    try {
+      pick.forEach((c, i) => { const {at: _a, ...props} = c; const m = v3Model({id: -1, ...props, type: c.type}).group; const b = new THREE.Box3().setFromObject(m); m.position.x = i * 3.2 - (pick.length - 1) * 1.6; m.position.y = -b.min.y * 0 ; g.add(m); });
+      if (!pick.length){ g.add(at(box(5.4, 0.18, 4, 0x26449A), 0, 0, 0)); g.add(at(box(1, 0.8, 0.9, 0xB8BEC2), -2.4, 0.45, -0.9)); g.add(at(box(2.4, 0.25, 0.55, 0x1E2224), 0.9, 0.2, 0.9)); }
+    } catch (e) {}
+    v3Linear(g); v3Toon(g); v3Outline(g); tsc.add(g);
+    const b = new THREE.Box3().setFromObject(g), c = b.getCenter(new THREE.Vector3());
+    tcam.position.set(c.x + Math.sin(Math.PI / 4) * Math.cos(EL) * 50, c.y + Math.sin(EL) * 50, c.z + Math.cos(Math.PI / 4) * Math.cos(EL) * 50); tcam.lookAt(c); tcam.updateMatrixWorld();
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; const v = new THREE.Vector3();
+    for (const X of [b.min.x, b.max.x]) for (const Y of [b.min.y, b.max.y]) for (const Z of [b.min.z, b.max.z]){ v.set(X, Y, Z).applyMatrix4(tcam.matrixWorldInverse); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); }
+    const s = Math.max(x1 - x0, y1 - y0) / 2 * 1.12, mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+    Object.assign(tcam, {left: mx - s, right: mx + s, top: my + s, bottom: my - s}); tcam.updateProjectionMatrix();
+    tr.render(tsc, tcam);
+    const url = tr.domElement.toDataURL('image/png');
+    tsc.remove(g); g.traverse(o => { o.geometry?.dispose?.(); const ms = Array.isArray(o.material) ? o.material : o.material ? [o.material] : []; ms.forEach(m => { if (m.userData && m.userData.keep) return; if (m.map && m.map !== bbTex && m.map !== pcbTex) m.map.dispose(); m.dispose(); }); });
+    thumbCache.set(key, url); return url;
+  }
+  let thumbQ = [];
+  function pumpThumbs(){
+    const job = thumbQ.shift(); if (!job) return;
+    const img = job.el; if (img.isConnected){ const u = thumbOf(job.key, job.list); if (u) img.src = u; }
+    setTimeout(pumpThumbs, 16);
+  }
+  const keyOf = it => it.src + ':' + it.titulo;
+
+  /* ---------- cuadrícula ---------- */
+  function render(){
+    if (root.hidden) return;
+    items = collect();
+    const t = norm(q.value || '').trim();
+    const counts = {all: items.length, doc: 0, ex: 0, lib: 0}; items.forEach(i => counts[i.src]++);
+    $('#hubFilters').innerHTML = [['all', 'Todos'], ['doc', '⭐ Del docente'], ['ex', '📘 Básicos'], ['lib', '📚 Proyectos listos']].map(([k, n]) => `<button type="button" class="hchip" data-f="${k}" aria-pressed="${filter === k}">${n} <span>${counts[k]}</span></button>`).join('');
+    $('#hubFilters').querySelectorAll('[data-f]').forEach(b => b.onclick = () => { filter = b.dataset.f; render(); });
+    let list = items.map((it, i) => ({it, i, s: score(it, t)})).filter(x => x.s > 0 && (filter === 'all' || x.it.src === filter));
+    if (t) list.sort((a, b) => b.s - a.s);
+    grid.innerHTML = list.length ? list.map(({it, i}) => `<button type="button" class="pcard" data-i="${i}">
+        <span class="pth"><img alt="" data-k="${esc(keyOf(it))}"></span>
+        <span class="pbody"><span class="psrc ${it.src}">${SRC[it.src]}</span><b>${esc(it.titulo)}</b>${it.idea ? `<small>${esc(it.idea)}</small>` : ''}<span class="pmeta">${it.need.length} pieza${it.need.length === 1 ? '' : 's'} distintas</span></span></button>`).join('')
+      : `<div class="hempty"><p>No encontré «${esc(q.value)}» entre los proyectos.</p>${docente ? '<p>Puedes crearlo: ármalo en la protoboard y pulsa <b>➕ Nuevo proyecto</b>.</p>' : ''}<button type="button" class="btn" id="hubAsk">Preguntarle al asistente cómo conectarlo</button></div>`;
+    const ha = $('#hubAsk'); if (ha) ha.onclick = () => { $('#ask').value = q.value; runAsk(); $('#plan').scrollIntoView({block: 'start', behavior: 'smooth'}); };
+    grid.querySelectorAll('.pcard').forEach(b => b.onclick = () => openDetail(items[+b.dataset.i]));
+    thumbQ = [...grid.querySelectorAll('img[data-k]')].map(el => { const it = items.find(x => keyOf(x) === el.dataset.k); return {el, key: el.dataset.k, list: it ? it.thumbComps : []}; });
+    pumpThumbs();
+  }
+  q.addEventListener('input', () => { clearTimeout(q._t); q._t = setTimeout(render, 120); });
+  q.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDefault(); const f = grid.querySelector('.pcard'); if (f) f.click(); } });
+
+  /* ---------- detalle de un proyecto ---------- */
+  function openDetail(it){
+    det.hidden = false; det.scrollTop = 0;
+    const url = thumbOf(keyOf(it), it.thumbComps);
+    det.innerHTML = `<div class="dhead"><button type="button" class="btn small" id="dBack">← Volver</button><span class="psrc ${it.src}">${SRC[it.src]}</span></div>
+      <div class="dmain"><img class="dimg" alt="" src="${url}"><div><h3>${esc(it.titulo)}</h3>${it.idea ? `<p>${esc(it.idea)}</p>` : ''}
+      <h4>Lo que necesitas</h4><ul>${it.need.map(n => `<li>${esc(n)}</li>`).join('')}</ul>
+      ${it.notas && it.notas.length ? `<h4>Notas</h4><ul>${it.notas.map(n => `<li>${esc(n)}</li>`).join('')}</ul>` : ''}</div></div>
+      <div class="dacts"><button type="button" class="btn primary" id="dBuild">🧩 Armarlo yo, con guía</button><button type="button" class="btn" id="dFull">👀 Ver armado completo</button>${it.src === 'lib' ? '<button type="button" class="btn" id="dHow">📋 Ver cómo se conecta</button>' : ''}
+      ${docente && it.src === 'doc' ? `<span class="sp"></span><button type="button" class="btn" id="dEdit">✏️ Editar</button>${it.where === 'pc' ? '<button type="button" class="btn" id="dDel">🗑 Borrar</button>' : ''}` : ''}</div>
+      <p class="hint">«Armarlo yo» pone las piezas en la protoboard sin cables: tú los conectas y la guía marca con ✓ cada conexión correcta.</p>`;
+    $('#dBack').onclick = () => { det.hidden = true; };
+    $('#dBuild').onclick = () => start(it, true);
+    $('#dFull').onclick = () => start(it, false);
+    const how = $('#dHow'); if (how) how.onclick = () => { planFor(it); $('#plan').scrollIntoView({block: 'start', behavior: 'smooth'}); };
+    const ed = $('#dEdit'); if (ed) ed.onclick = () => { MIS.edit(it.ref); };
+    const dd = $('#dDel'); if (dd) dd.onclick = () => { if (MIS.remove(it.ref)){ det.hidden = true; render(); } };
+  }
+  function planFor(it){ const r = exportFor(it.ref); const ai = normalizeAI(r); ai.src = 'lib'; ai.raw = r; $('#ask').value = it.titulo; makePlan(it.titulo, ai); return lastPlan; }
+
+  /* ---------- armar: completo o con guía ---------- */
+  let cur = null, doneShown = false;
+  function loadFull(it){
+    if (it.src === 'doc') return MIS.load(it.ref, false);
+    if (it.src === 'ex'){ loadExample(it.ref); return true; }
+    const plan = planFor(it); if (!plan) return false;
+    buildFromPlan(plan); builtPlan = {text: it.titulo, src: 'lib', raw: exportFor(it.ref)};
+    return true;
+  }
+  function start(it, guided){
+    if (code.value.trim() && code.value !== lastLoaded && !confirm(`Cargar «${it.titulo}» reemplaza tu circuito y tu código actuales. ¿Continuar?`)) return;
+    if (!loadFull(it)) return;
+    $('#pop').hidden = true;
+    if (guided){
+      buildNets();
+      comps.forEach(c => { if (ROLE[c.type] && c.type !== 'resistor'){ c.fixed = suggest(c); } });
+      wires = [];
+      buildNets(); renderParts(); renderCards(); drawWires(); review(false); prevKeys = new Set(issues.map(i => i.lvl + '|' + i.cid + '|' + i.msg)); save();
+      cur = it; doneShown = false; document.body.classList.add('armando'); progress();
+      ISO.setView('edit');
+    } else {
+      stopBuild();
+      ISO.setView('iso');
+    }
+    det.hidden = true;
+  }
+  function counts(){
+    let ok = 0, total = 0;
+    comps.forEach(c => { if (c.type === 'resistor') return; let g = []; try { g = guideFor(c); } catch (e) {} g.forEach(x => { if (x && x.leg){ total++; if (x.st === 'ok') ok++; } }); });
+    return {ok, total};
+  }
+  function progress(){
+    const bar = $('#buildBar'); if (!cur){ bar.hidden = true; return; }
+    const {ok, total} = counts(), pct = total ? Math.round(ok / total * 100) : 0, done = total > 0 && ok === total;
+    bar.hidden = false; bar.classList.toggle('done', done);
+    bar.innerHTML = `<div class="bt"><b>🧩 ${esc(cur.titulo)}</b><button type="button" class="x" id="bbClose" title="Terminar la guía">×</button></div>
+      <div class="bp"><i style="width:${pct}%"></i></div>
+      <div class="bm">${done ? '¡Armado! Todas las conexiones están bien. Pulsa <b>▶ Ejecutar</b>.' : `${ok} de ${total} conexiones correctas. Cada tarjeta de <b>Componentes</b> dice a dónde va cada pata.`}</div>
+      <div class="ba"><button type="button" class="btn small" id="bbCards">Ver la guía de cada pieza</button><button type="button" class="btn small" id="bbGive">Ver armado completo</button></div>`;
+    $('#bbClose').onclick = stopBuild;
+    $('#bbCards').onclick = () => $('#bench').scrollIntoView({block: 'start', behavior: 'smooth'});
+    $('#bbGive').onclick = () => { const it = cur; if (confirm('¿Ver el circuito armado? Se ponen todos los cables.')) start(it, false); };
+    if (done && !doneShown){ doneShown = true; try { window.__games && GAMES.confetti && GAMES.confetti(); } catch (e) {} }
+  }
+  function stopBuild(){ cur = null; document.body.classList.remove('armando'); $('#buildBar').hidden = true; comps.forEach(c => { delete c.fixed; }); }
+
+  /* ---------- modo docente con PIN ---------- */
+  const PINK = 'banco-docente-pin';
+  const getPin = () => { try { return localStorage.getItem(PINK) || ''; } catch (e) { return ''; } };
+  function setRole(doc){
+    docente = doc; document.body.classList.toggle('docente', doc);
+    document.querySelectorAll('#roleSeg [data-role]').forEach(b => b.setAttribute('aria-selected', String((b.dataset.role === 'doc') === doc)));
+    $('#hubDoc').hidden = !doc; $('#hubPinBox').hidden = true;
+    render(); if (!det.hidden) det.hidden = true;
+  }
+  function askPin(){
+    const has = !!getPin(), box = $('#hubPinBox');
+    box.hidden = false;
+    box.innerHTML = `<b>${has ? 'Modo docente: escribe tu PIN' : 'Crea un PIN de docente'}</b><span>${has ? '' : 'De 4 a 8 números. Así los estudiantes no pueden agregar ni borrar proyectos en este computador.'}</span>
+      <input type="password" inputmode="numeric" maxlength="8" id="pinIn" placeholder="PIN" autocomplete="off">${has ? '' : '<input type="password" inputmode="numeric" maxlength="8" id="pinIn2" placeholder="Repite el PIN" autocomplete="off">'}
+      <button type="button" class="btn small primary" id="pinOk">${has ? 'Entrar' : 'Crear PIN y entrar'}</button><button type="button" class="btn small" id="pinNo">Cancelar</button><small id="pinMsg"></small>`;
+    $('#pinIn').focus();
+    const go = () => {
+      const a = $('#pinIn').value.trim();
+      if (has){ if (a === getPin()) setRole(true); else { $('#pinMsg').textContent = 'PIN incorrecto.'; $('#pinIn').select(); } return; }
+      const b = $('#pinIn2').value.trim();
+      if (!/^\d{4,8}$/.test(a)){ $('#pinMsg').textContent = 'Usa de 4 a 8 números.'; return; }
+      if (a !== b){ $('#pinMsg').textContent = 'Los dos PIN no coinciden.'; return; }
+      try { localStorage.setItem(PINK, a); } catch (e) {}
+      setRole(true);
+    };
+    $('#pinOk').onclick = go; box.querySelectorAll('input').forEach(i => i.onkeydown = e => { if (e.key === 'Enter') go(); });
+    $('#pinNo').onclick = () => { box.hidden = true; setRole(false); };
+  }
+  document.querySelectorAll('#roleSeg [data-role]').forEach(b => b.onclick = () => { if (b.dataset.role === 'doc'){ if (!docente) askPin(); } else setRole(false); });
+  $('#hubNew').onclick = () => MIS.open();
+  $('#hubManage').onclick = () => MIS.open();
+  $('#hubPin').onclick = () => { try { localStorage.removeItem(PINK); } catch (e) {} setRole(false); askPin(); };
+  $('#hubOut').onclick = () => setRole(false);
+
+  return {render, progress, stopBuild, setRole, isDoc: () => docente, show(){ render(); }};
+})();
+{
+  const _review3 = review;
+  review = function(notify, ctx){ _review3(notify, ctx); try { HUB.progress(); } catch (e) {} };
+}
+if (!$('#hub').hidden) HUB.render();
 {
   const _review2 = review;
   review = function(notify, ctx){ _review2(notify, ctx); try { ISO.changed(); } catch (e) {} };
