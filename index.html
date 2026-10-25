@@ -475,7 +475,7 @@ body.fs .panel.fsp .hub{flex:1;height:auto}
   <header class="top">
     <div class="brand">
       <svg class="logo" viewBox="0 0 46 46" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><rect x="9" y="9" width="28" height="28" rx="3"/><rect x="16" y="16" width="14" height="14" rx="1.5" fill="var(--accent)" stroke="var(--accent)"/><path d="M15 9V3M23 9V3M31 9V3M15 43v-6M23 43v-6M31 43v-6M9 15H3M9 23H3M9 31H3M43 15h-6M43 23h-6M43 31h-6"/><circle cx="23" cy="23" r="2.6" fill="var(--surface)" stroke="none"/></svg>
-      <div><h1>Banco Arduino</h1><p class="tagline">Explora<i>·</i>Entiende<i>·</i>Construye</p><p class="sub">Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.25-0030</span></p></div>
+      <div><h1>Banco Arduino</h1><p class="tagline">Explora<i>·</i>Entiende<i>·</i>Construye</p><p class="sub">Simulador de Arduino Uno · cablea tú mismo la protoboard y el simulador revisa tu circuito · <span title="Versión instalada">versión 2026.10.25-0310</span></p></div>
     </div>
     <div class="actions">
       <label class="chk" for="ex" style="gap:8px">Ejemplo <select id="ex" class="sel"></select></label>
@@ -6967,6 +6967,9 @@ const GAMES = (() => {
   hb.className = 'btn primary'; hb.id = 'playBtn'; hb.textContent = '🎮 Jugar'; hb.title = 'Misiones y concurso para aprender';
   const g = $('#guideBtn'); g.parentNode.insertBefore(hb, g);
   hb.onclick = () => openGames('mis');
+  { const lb = document.createElement('a'); lb.className = 'btn bookbtn2'; lb.id = 'bookTop'; lb.textContent = '📕 Libro PDF'; lb.title = 'Descargar el libro imprimible con los 205 proyectos paso a paso';
+    lb.href = 'https://andresyairrenteriamurillo-maker.github.io/banco-arduino/Libro-Banco-Arduino-2026-2027.pdf'; lb.target = '_blank'; lb.rel = 'noopener';
+    lb.style.cssText = 'text-decoration:none;background:#C62828;color:#fff;border-color:#C62828;font-weight:700'; g.parentNode.insertBefore(lb, hb); }
 
   const css = document.createElement('style');
   css.textContent = `
