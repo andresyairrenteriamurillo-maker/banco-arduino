@@ -103,5 +103,240 @@
     "color": "negro"
    }
   ]
+ },
+ {
+  "titulo": "Timbre automático escolar",
+  "keys": [
+   "timbre",
+   "timbre escolar",
+   "timbre automatico",
+   "campana",
+   "horario de clases",
+   "reloj",
+   "ds3231",
+   "oled",
+   "rele"
+  ],
+  "idea": "Un timbre para el colegio que suena solo a las horas programadas, de lunes a viernes. El reloj DS3231 guarda la hora, la pantalla OLED muestra la hora y el próximo timbre, y el relé enciende el timbre de 110 V.",
+  "notas": [
+   "El relé es el que enciende el timbre de 110 V: COM a la fase (L) después del fusible y NO al timbre; el otro cable del timbre va al neutro (N).",
+   "MENU cambia de pantalla: hora, horarios, silenciar hoy, probar timbre y prueba en 1 minuto.",
+   "Para probarlo en el simulador: MENU hasta «Prueba de horario» y OK; al minuto siguiente el relé se activa.",
+   "Los horarios se cambian en los arreglos horaH, horaM, dur y nombre al inicio del código.",
+   "La versión con ESP32 y WiFi (horarios desde el celular) está en el proyecto del timbre en GitHub."
+  ],
+  "code": "// Timbre automático escolar (versión Arduino Uno para Banco Arduino)\n// Reloj DS3231 + pantalla OLED + relé + 5 botones\n#include <Wire.h>\n#include <RTClib.h>\n#include <Adafruit_GFX.h>\n#include <Adafruit_SSD1306.h>\n\nRTC_DS3231 rtc;                               // SDA en A4, SCL en A5\nAdafruit_SSD1306 pantalla(128, 64, &Wire, -1);\n\nconst int BTN_MENU = 2;\nconst int BTN_SUBIR = 3;\nconst int BTN_BAJAR = 4;\nconst int BTN_OK = 5;\nconst int BTN_TIMBRE = 6;   // timbre manual\nconst int RELE = 7;         // activa el timbre de 110 V\n\n// Horarios: hora, minuto, días (1 = suena ese día) y segundos que suena\nconst int TOTAL = 6;\nint horaH[TOTAL] = {6, 9, 10, 12, 12, 0};\nint horaM[TOTAL] = {30, 30, 0, 0, 30, 0};\nint dur[TOTAL] = {5, 3, 3, 5, 8, 3};\nString nombre[TOTAL] = {\"Entrada\", \"Descanso\", \"Fin descanso\", \"Almuerzo\", \"Salida\", \"Prueba\"};\nbool usado[TOTAL] = {true, true, true, true, true, false};   // el 6 es para la prueba\n// Días de la semana: Dom Lun Mar Mie Jue Vie Sab\nbool lunAVie[7] = {false, true, true, true, true, true, false};\n\nString DIAS[7] = {\"Dom\", \"Lun\", \"Mar\", \"Mie\", \"Jue\", \"Vie\", \"Sab\"};\n\nbool sonando = false;\nunsigned long sonarHasta = 0;\nint ultimoMinuto = -1;\nbool silencioHoy = false;\nint diaSilencio = -1;\nint pantallaActual = 0;      // 0 hora, 1 horarios de hoy, 2 silenciar hoy, 3 probar timbre, 4 prueba en 1 min\nint desplazar = 0;\nunsigned long ultimaTecla = 0;\nbool antes[5] = {true, true, true, true, true};\nint pinesBoton[5] = {2, 3, 4, 5, 6};\n\nString dos(int n) {\n  if (n < 10) return \"0\" + String(n);\n  return String(n);\n}\n\nvoid tocar(int segundos, String quien) {\n  sonando = true;\n  sonarHasta = millis() + segundos * 1000;\n  Serial.print(\"TIMBRE: \");\n  Serial.print(quien);\n  Serial.print(\" (\");\n  Serial.print(segundos);\n  Serial.println(\" s)\");\n}\n\nbool suenaHoy(int i, int dia) {\n  if (!usado[i]) return false;\n  if (i == 5) return true;          // la prueba suena cualquier día\n  return lunAVie[dia];\n}\n\nvoid revisarHorarios(DateTime t) {\n  int minutoActual = t.hour() * 60 + t.minute();\n  if (minutoActual == ultimoMinuto) return;\n  ultimoMinuto = minutoActual;\n  if (silencioHoy && diaSilencio == t.day()) return;\n  for (int i = 0; i < TOTAL; i++) {\n    if (suenaHoy(i, t.dayOfTheWeek()) && horaH[i] == t.hour() && horaM[i] == t.minute()) {\n      tocar(dur[i], nombre[i]);\n      if (i == 5) usado[5] = false;\n      return;\n    }\n  }\n}\n\nString proximo(DateTime t) {\n  if (silencioHoy && diaSilencio == t.day()) return \"Silenciado hoy\";\n  int ahora = t.hour() * 60 + t.minute();\n  int mejor = -1;\n  int mejorMin = 9999;\n  for (int i = 0; i < TOTAL; i++) {\n    int m = horaH[i] * 60 + horaM[i];\n    if (suenaHoy(i, t.dayOfTheWeek()) && m > ahora && m < mejorMin) {\n      mejor = i;\n      mejorMin = m;\n    }\n  }\n  if (mejor < 0) return \"Manana \" + dos(horaH[0]) + \":\" + dos(horaM[0]);\n  return dos(horaH[mejor]) + \":\" + dos(horaM[mejor]) + \" \" + nombre[mejor];\n}\n\nint leerBoton() {\n  for (int b = 0; b < 4; b++) {\n    bool ahora = digitalRead(pinesBoton[b]);\n    if (ahora != antes[b]) {\n      antes[b] = ahora;\n      if (ahora == LOW) return b;\n    }\n  }\n  return -1;\n}\n\nvoid manejar(int b, DateTime t) {\n  ultimaTecla = millis();\n  if (b == 0) {                                   // MENU\n    pantallaActual = (pantallaActual + 1) % 5;\n    desplazar = 0;\n    return;\n  }\n  if (pantallaActual == 1 && b == 1 && desplazar > 0) desplazar--;\n  if (pantallaActual == 1 && b == 2 && desplazar < TOTAL - 1) desplazar++;\n  if (pantallaActual == 2 && b == 3) {            // OK: silenciar hoy\n    silencioHoy = !silencioHoy;\n    diaSilencio = t.day();\n    Serial.println(silencioHoy ? \"Timbre silenciado por hoy\" : \"Timbre activado\");\n  }\n  if (pantallaActual == 3 && b == 3) tocar(3, \"Prueba manual\");\n  if (pantallaActual == 4 && b == 3) {            // OK: programa una prueba en 1 minuto\n    horaH[5] = t.hour();\n    horaM[5] = t.minute() + 1;\n    if (horaM[5] == 60) {\n      horaM[5] = 0;\n      horaH[5] = (horaH[5] + 1) % 24;\n    }\n    usado[5] = true;\n    Serial.println(\"Prueba programada a las \" + dos(horaH[5]) + \":\" + dos(horaM[5]));\n  }\n}\n\nvoid dibujar(DateTime t) {\n  pantalla.clearDisplay();\n  pantalla.setTextColor(SSD1306_WHITE);\n  pantalla.setTextSize(1);\n  if (pantallaActual == 0) {\n    pantalla.setTextSize(2);\n    pantalla.setCursor(16, 0);\n    pantalla.print(dos(t.hour()) + \":\" + dos(t.minute()) + \":\" + dos(t.second()));\n    pantalla.setTextSize(1);\n    pantalla.setCursor(0, 20);\n    pantalla.print(DIAS[t.dayOfTheWeek()] + \" \" + dos(t.day()) + \"/\" + dos(t.month()) + \"/\" + String(t.year()));\n    pantalla.setCursor(0, 36);\n    if (sonando || digitalRead(BTN_TIMBRE) == LOW) pantalla.print(\"** TIMBRANDO **\");\n    else pantalla.print(\"Proximo timbre:\");\n    pantalla.setCursor(0, 48);\n    pantalla.print(proximo(t));\n  } else if (pantallaActual == 1) {\n    pantalla.print(\"Horarios (L-V):\");\n    int fila = 0;\n    for (int i = desplazar; i < TOTAL && fila < 5; i++) {\n      if (!usado[i]) continue;\n      pantalla.setCursor(0, 12 + fila * 10);\n      pantalla.print(dos(horaH[i]) + \":\" + dos(horaM[i]) + \" \" + nombre[i]);\n      fila++;\n    }\n  } else if (pantallaActual == 2) {\n    pantalla.print(\"Silenciar hoy:\");\n    pantalla.setTextSize(2);\n    pantalla.setCursor(0, 18);\n    pantalla.print((silencioHoy && diaSilencio == t.day()) ? \"SI\" : \"NO\");\n    pantalla.setTextSize(1);\n    pantalla.setCursor(0, 50);\n    pantalla.print(\"OK = cambiar\");\n  } else if (pantallaActual == 3) {\n    pantalla.print(\"Probar timbre\");\n    pantalla.setCursor(0, 24);\n    pantalla.print(sonando ? \"Sonando...\" : \"OK = tocar 3 s\");\n  } else {\n    pantalla.print(\"Prueba de horario\");\n    pantalla.setCursor(0, 20);\n    pantalla.print(\"OK = timbre en 1 min\");\n    if (usado[5]) {\n      pantalla.setCursor(0, 40);\n      pantalla.print(\"Sonara a las \" + dos(horaH[5]) + \":\" + dos(horaM[5]));\n    }\n  }\n  pantalla.display();\n}\n\nvoid setup() {\n  Serial.begin(9600);\n  for (int b = 0; b < 5; b++) pinMode(pinesBoton[b], INPUT_PULLUP);\n  pinMode(RELE, OUTPUT);\n  digitalWrite(RELE, LOW);\n  if (!rtc.begin()) Serial.println(\"No encuentro el reloj DS3231\");\n  pantalla.begin(SSD1306_SWITCHCAPVCC, 0x3C);\n  Serial.println(\"Timbre automatico listo\");\n  Serial.println(\"MENU cambia de pantalla, OK confirma, TIMBRE suena mientras lo presionas\");\n}\n\nvoid loop() {\n  DateTime t = rtc.now();\n  revisarHorarios(t);\n\n  if (sonando && millis() > sonarHasta) {\n    sonando = false;\n    Serial.println(\"Timbre apagado\");\n  }\n  bool manual = digitalRead(BTN_TIMBRE) == LOW;\n  digitalWrite(RELE, (sonando || manual) ? HIGH : LOW);\n\n  int b = leerBoton();\n  if (b >= 0) manejar(b, t);\n  if (pantallaActual != 0 && millis() - ultimaTecla > 30000) pantallaActual = 0;\n\n  dibujar(t);\n  delay(100);\n}\n",
+  "comps": [
+   {
+    "id": 1,
+    "type": "relay",
+    "bx": 2,
+    "by": 6,
+    "burnt": false,
+    "relOn": false
+   },
+   {
+    "id": 2,
+    "type": "ds3231",
+    "bx": 11,
+    "by": 6,
+    "burnt": false
+   },
+   {
+    "id": 3,
+    "type": "oled",
+    "bx": 20,
+    "by": 6,
+    "addr": 60,
+    "burnt": false
+   },
+   {
+    "id": 4,
+    "type": "button",
+    "bx": 28,
+    "by": 6,
+    "burnt": false
+   },
+   {
+    "id": 5,
+    "type": "button",
+    "bx": 1,
+    "by": 1,
+    "burnt": false
+   },
+   {
+    "id": 6,
+    "type": "button",
+    "bx": 5,
+    "by": 1,
+    "burnt": false
+   },
+   {
+    "id": 7,
+    "type": "button",
+    "bx": 9,
+    "by": 1,
+    "burnt": false
+   },
+   {
+    "id": 8,
+    "type": "button",
+    "bx": 13,
+    "by": 1,
+    "burnt": false
+   }
+  ],
+  "wires": [
+   {
+    "id": 1,
+    "a": "P:5V",
+    "b": "bp:2",
+    "color": "rojo"
+   },
+   {
+    "id": 2,
+    "a": "9:2",
+    "b": "bp:3",
+    "color": "rojo"
+   },
+   {
+    "id": 3,
+    "a": "P:GND1",
+    "b": "bn:14",
+    "color": "negro"
+   },
+   {
+    "id": 4,
+    "a": "9:3",
+    "b": "bn:3",
+    "color": "negro"
+   },
+   {
+    "id": 5,
+    "a": "P:D7",
+    "b": "9:4",
+    "color": "blanco"
+   },
+   {
+    "id": 6,
+    "a": "9:6",
+    "b": "tp:6",
+    "color": "rojo"
+   },
+   {
+    "id": 7,
+    "a": "9:11",
+    "b": "bp:11",
+    "color": "rojo"
+   },
+   {
+    "id": 8,
+    "a": "9:12",
+    "b": "bn:12",
+    "color": "negro"
+   },
+   {
+    "id": 9,
+    "a": "P:A5",
+    "b": "9:13",
+    "color": "naranja"
+   },
+   {
+    "id": 10,
+    "a": "P:A4",
+    "b": "9:14",
+    "color": "morado"
+   },
+   {
+    "id": 11,
+    "a": "9:20",
+    "b": "bn:20",
+    "color": "negro"
+   },
+   {
+    "id": 12,
+    "a": "9:21",
+    "b": "bp:21",
+    "color": "rojo"
+   },
+   {
+    "id": 13,
+    "a": "8:13",
+    "b": "9:22",
+    "color": "verde"
+   },
+   {
+    "id": 14,
+    "a": "8:14",
+    "b": "9:23",
+    "color": "azul"
+   },
+   {
+    "id": 15,
+    "a": "P:D2",
+    "b": "9:28",
+    "color": "naranja"
+   },
+   {
+    "id": 16,
+    "a": "9:30",
+    "b": "bn:30",
+    "color": "negro"
+   },
+   {
+    "id": 17,
+    "a": "P:D3",
+    "b": "4:1",
+    "color": "blanco"
+   },
+   {
+    "id": 18,
+    "a": "bn:35",
+    "b": "tn:35",
+    "color": "negro"
+   },
+   {
+    "id": 19,
+    "a": "4:3",
+    "b": "tn:3",
+    "color": "negro"
+   },
+   {
+    "id": 20,
+    "a": "P:D4",
+    "b": "4:5",
+    "color": "azul"
+   },
+   {
+    "id": 21,
+    "a": "4:7",
+    "b": "tn:7",
+    "color": "negro"
+   },
+   {
+    "id": 22,
+    "a": "P:D5",
+    "b": "4:9",
+    "color": "morado"
+   },
+   {
+    "id": 23,
+    "a": "4:11",
+    "b": "tn:11",
+    "color": "negro"
+   },
+   {
+    "id": 24,
+    "a": "P:D6",
+    "b": "4:13",
+    "color": "amarillo"
+   },
+   {
+    "id": 25,
+    "a": "4:15",
+    "b": "tn:15",
+    "color": "negro"
+   }
+  ]
  }
 ]
